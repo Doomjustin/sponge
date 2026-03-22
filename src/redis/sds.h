@@ -95,7 +95,7 @@ private:
     }
 
     template<std::unsigned_integral Size>
-    static auto sds_capacity(char* sds) noexcept -> Size&
+    static auto extract_capacity(char* sds) noexcept -> Size&
     {
         using SDS = BasicSDS<Size>;
         auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
@@ -103,7 +103,7 @@ private:
     } 
 
     template<std::unsigned_integral Size>
-    static auto sds_length(char* sds) noexcept -> Size&
+    static auto extract_size(char* sds) noexcept -> Size&
     {
         using SDS = BasicSDS<Size>;
         auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
@@ -111,7 +111,7 @@ private:
     }
     
     template<std::unsigned_integral Size>
-    static auto sds_available(char* sds) noexcept -> size_t
+    static auto extract_available(char* sds) noexcept -> size_t
     {
         using SDS = BasicSDS<Size>;
         auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
@@ -119,7 +119,7 @@ private:
     }
 
     template<std::unsigned_integral Size, Flag flag>
-    auto sds_create(std::string_view str, size_t capacity) noexcept -> char*
+    auto create_sds(std::string_view str, size_t capacity) noexcept -> char*
     {
         using SDS = BasicSDS<Size>;
 
@@ -140,7 +140,7 @@ private:
     }
 
     template<std::unsigned_integral Size>
-    void sds_destroy(char* sds) noexcept
+    void destroy_sds(char* sds) noexcept
     {
         using SDS = BasicSDS<Size>;
         auto* header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
