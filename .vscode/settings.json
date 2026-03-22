@@ -1,0 +1,18 @@
+{
+    "cmake.outputLogEncoding": "utf-8",
+    "editor.formatOnSave": false, 
+    "cmake.configureSettings": {
+        "CMAKE_TOOLCHAIN_FILE": "${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    },
+    // 需要安装 Run on Save 插件
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "match": "\\.(cpp|hpp|c|h|cc|cxx)$",
+                // 调用我们写的代理脚本
+                "cmd": "python3 ${workspaceRoot}/scripts/format_includes_only.py \"${file}\"",
+                "isAsync": false
+            }
+        ]
+    }
+}

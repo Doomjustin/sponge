@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Generate: C++ (手动输入: Module 可选)",
+            "type": "shell",
+            "command": "python3",
+            "windows": {
+                "command": "py"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "args": [
+                "${workspaceFolder}/scripts/scaffold_cpp.py",
+                "${input:fileBaseManual}",
+                "${input:moduleManual}",
+                "${workspaceFolder}",
+                "${input:namespaceManual}"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false,
+                "echo": false
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "fileBaseManual",
+            "type": "promptString",
+            "description": "手动模式: 输入文件基名(例如 utility)"
+        },
+        {
+            "id": "moduleManual",
+            "type": "promptString",
+            "description": "手动模式: 输入 Module(可选, 例如 sub 或 sub/net)",
+            "default": ""
+        },
+        {
+            "id": "namespaceManual",
+            "type": "promptString",
+            "description": "手动模式: 输入命名空间(留空按 Module 自动推导)"
+        }
+    ]
+}

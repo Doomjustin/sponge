@@ -1,0 +1,16 @@
+CompileFlags:
+  CompilationDatabase: build
+
+Index:
+  Background: Build
+
+Diagnostics:
+  ClangTidy: 
+    Add: 
+      - "modernize-*"
+      - "performance-*"
+
+InlayHints:
+  Enabled: true
+  ParameterNames: true
+  DeducedTypes: true
