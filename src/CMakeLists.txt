@@ -1,1 +1,4 @@
-spg_add_module(common common)
+spg_add_module(common common
+    PUBLIC
+        Microsoft.GSL::GSL
+)

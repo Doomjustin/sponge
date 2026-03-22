@@ -1,8 +1,8 @@
-#include "sponge/utility.h"
-
-#include <catch2/catch_test_macros.hpp>
+#include <sponge/utility.h>
 
 #include <cstdint>
+
+#include <catch2/catch_test_macros.hpp>
 
 using namespace spg;
 

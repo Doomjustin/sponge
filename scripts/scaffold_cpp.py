@@ -121,7 +121,7 @@ def main() -> int:
     cpp.write_text(
         "\n".join(
             [
-                f'#include "{include_stmt}"',
+                f"#include <{include_stmt}>",
                 "",
                 f"namespace {ns} {{",
                 "",
@@ -135,9 +135,9 @@ def main() -> int:
     test.write_text(
         "\n".join(
             [
-                "#include <catch2/catch_test_macros.hpp>",
+                f"#include <{include_stmt}>",
                 "",
-                f'#include "{include_stmt}"',
+                "#include <catch2/catch_test_macros.hpp>",
                 "",
                 f'TEST_CASE("{name} smoke", "[{name}]") {{',
                 "    SUCCEED();",

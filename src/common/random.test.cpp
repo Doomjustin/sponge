@@ -1,6 +1,4 @@
-#include "sponge/random.h"
-
-#include <catch2/catch_test_macros.hpp>
+#include <sponge/random.h>
 
 #include <algorithm>
 #include <array>
@@ -8,6 +6,8 @@
 #include <numeric>
 #include <thread>
 #include <vector>
+
+#include <catch2/catch_test_macros.hpp>
 
 using namespace spg;
 

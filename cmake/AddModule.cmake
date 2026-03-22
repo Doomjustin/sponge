@@ -1,17 +1,45 @@
 function(spg_add_module module_name)
-    if(NOT (ARGC EQUAL 1 OR ARGC EQUAL 2))
-        message(FATAL_ERROR "spg_add_module requires: module_name [module_dir]")
+    if(ARGC LESS 1)
+        message(FATAL_ERROR "spg_add_module requires: module_name [module_dir] [PUBLIC ...] [PRIVATE ...] [INTERFACE ...]")
     endif()
 
-    if(ARGC EQUAL 2)
-        set(module_dir_raw ${ARGV1})
-        if(IS_ABSOLUTE "${module_dir_raw}")
-            set(module_dir "${module_dir_raw}")
-        else()
-            set(module_dir "${CMAKE_CURRENT_SOURCE_DIR}/${module_dir_raw}")
+    set(module_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(scope_start_index 1)
+
+    if(ARGC GREATER 1)
+        if(NOT (ARGV1 STREQUAL "PUBLIC" OR ARGV1 STREQUAL "PRIVATE" OR ARGV1 STREQUAL "INTERFACE"))
+            set(module_dir_raw ${ARGV1})
+            if(IS_ABSOLUTE "${module_dir_raw}")
+                set(module_dir "${module_dir_raw}")
+            else()
+                set(module_dir "${CMAKE_CURRENT_SOURCE_DIR}/${module_dir_raw}")
+            endif()
+            set(scope_start_index 2)
         endif()
-    else()
-        set(module_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+    endif()
+
+    if(ARGC GREATER ${scope_start_index})
+        math(EXPR remaining_count "${ARGC} - ${scope_start_index}")
+        list(SUBLIST ARGV ${scope_start_index} ${remaining_count} link_args)
+
+        set(current_scope "")
+        foreach(arg IN LISTS link_args)
+            if(arg STREQUAL "PUBLIC" OR arg STREQUAL "PRIVATE" OR arg STREQUAL "INTERFACE")
+                set(current_scope ${arg})
+            else()
+                if(current_scope STREQUAL "")
+                    message(FATAL_ERROR "Link dependency '${arg}' must follow one of: PUBLIC, PRIVATE, INTERFACE")
+                endif()
+
+                if(current_scope STREQUAL "PUBLIC")
+                    list(APPEND public_libs ${arg})
+                elseif(current_scope STREQUAL "PRIVATE")
+                    list(APPEND private_libs ${arg})
+                else()
+                    list(APPEND interface_libs ${arg})
+                endif()
+            endif()
+        endforeach()
     endif()
 
     file(GLOB module_cpp CONFIGURE_DEPENDS "${module_dir}/*.cpp")
@@ -46,6 +74,17 @@ function(spg_add_module module_name)
             ${PROJECT_SOURCE_DIR}/src
     )
     target_compile_features(${lib_target} PUBLIC cxx_std_23)
+
+    if(public_libs OR private_libs OR interface_libs)
+        target_link_libraries(${lib_target}
+            PUBLIC
+                ${public_libs}
+            PRIVATE
+                ${private_libs}
+            INTERFACE
+                ${interface_libs}
+        )
+    endif()
 
     if(BUILD_TESTING AND ${PROJECT_NAME}_BUILD_TESTS AND module_test_cpp)
         set(test_target ${project_name_lc}.${module_name}.test)
