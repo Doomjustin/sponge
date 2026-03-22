@@ -33,8 +33,4 @@ IncludeCategories:
     Priority: 6
     CaseSensitive: false
 
-# 主头文件识别：
-# - foo.cpp / foo.cc / foo.cxx  -> foo.h
-# - foo.test.cpp                -> foo.h
-IncludeIsMainSourceRegex: '(\\.c|\\.cc|\\.cpp|\\.cxx|\\.m|\\.mm)$'
 IncludeIsMainRegex: '((\\.test)?)$'

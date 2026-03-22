@@ -73,6 +73,33 @@ def cleanup_trailing_blank_lines_after_includes(lines: list[str]) -> None:
             lines.pop(last_include_idx + 2)
 
 
+def normalize_blank_lines_inside_include_block(lines: list[str]) -> None:
+    """Collapse consecutive blank lines within include block to a single blank line."""
+    include_indices = [i for i, line in enumerate(lines) if INCLUDE_RE.match(line)]
+    if len(include_indices) < 2:
+        return
+
+    first_include_idx = include_indices[0]
+    last_include_idx = include_indices[-1]
+
+    idx = first_include_idx + 1
+    while idx <= last_include_idx and idx < len(lines):
+        if lines[idx].strip() != "":
+            idx += 1
+            continue
+
+        run_start = idx
+        while idx <= last_include_idx and idx < len(lines) and lines[idx].strip() == "":
+            idx += 1
+        run_length = idx - run_start
+
+        if run_length > 1:
+            del lines[run_start + 1 : run_start + run_length]
+            removed = run_length - 1
+            last_include_idx -= removed
+            idx = run_start + 1
+
+
 def main(filepath):
     start_line = -1
     end_line = -1
@@ -97,10 +124,11 @@ def main(filepath):
             # clang-format 之后再强制把主头文件放到第一个 include。
             with open(filepath, "r", encoding="utf-8") as f:
                 formatted_lines = f.readlines()
-            if move_main_include_first(formatted_lines, filepath):
-                cleanup_trailing_blank_lines_after_includes(formatted_lines)
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.writelines(formatted_lines)
+            move_main_include_first(formatted_lines, filepath)
+            normalize_blank_lines_inside_include_block(formatted_lines)
+            cleanup_trailing_blank_lines_after_includes(formatted_lines)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.writelines(formatted_lines)
         except subprocess.CalledProcessError as e:
             print(f"clang-format 执行失败: {e}")
         except FileNotFoundError:

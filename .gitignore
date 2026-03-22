@@ -47,6 +47,7 @@ cmake-build*/
 out/
 
 # py
+.venv/
 __pycache__/
 
 # customer
