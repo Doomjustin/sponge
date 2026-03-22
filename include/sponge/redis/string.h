@@ -24,14 +24,18 @@ static constexpr ExpandGreedyTag greedy{};
 // 内存由传入的 polymorphic memory resource 提供。
 class String {
 public:
+    // 使用默认内存资源 默认构造，创建一个空字符串。
+    // std::pmr::get_default_resource()。
     String();
 
+    // 使用默认内存资源 用 str 初始化字符串。
+    // std::pmr::get_default_resource()。
     explicit String(std::string_view str);
 
-    // 创建空字符串。
+    // 使用指定的内存资源创建空字符串。
     explicit String(gsl::not_null<std::pmr::memory_resource*> resource);
 
-    // 用 str 初始化字符串。
+    // 使用指定的内存资源用 str 初始化字符串。
     String(std::string_view str, gsl::not_null<std::pmr::memory_resource*> resource);
 
     // 深拷贝构造。
@@ -44,6 +48,8 @@ public:
     String(String&& other) noexcept;
 
     // 移动赋值，先释放当前存储，再接管对方缓冲区。
+    // 如果无法确定两者是否使用同一内存资源，则退化为深拷贝。
+    // 所以这里不能标记为 noexcept。
     auto operator=(String&& other) -> String&;
 
     ~String();
@@ -121,6 +127,7 @@ private:
     char* sds_;
 };
 
+// 将整数转换为字符串，使用指定的内存资源分配结果。
 template<std::integral T, bool FollowOriginal = false>
 auto string_cast(T value, gsl::not_null<std::pmr::memory_resource*> resource) -> String
 {
@@ -174,14 +181,17 @@ auto string_cast(T value, gsl::not_null<std::pmr::memory_resource*> resource) ->
     return { std::string_view(buffer.data(), buffer.size()), resource };
 }
 
+// 将整数转换为字符串，使用默认内存资源分配结果。
 template<std::integral T>
 auto string_cast(T value) -> String
 {
     return string_cast<T, false>(value, std::pmr::get_default_resource());
 }
 
+// 为 String 提供 fmt 格式化支持。
 auto format_as(const String& str) -> std::string_view;
 
+// 使用 fmt 格式化字符串，结果存储在 String 中，使用指定的内存资源分配。
 template<typename... T>
 auto format(gsl::not_null<std::pmr::memory_resource*> resource, fmt::format_string<T...> fmt_str, T&&... args) -> String
 {
@@ -190,6 +200,7 @@ auto format(gsl::not_null<std::pmr::memory_resource*> resource, fmt::format_stri
     return { std::string_view(buffer.data(), buffer.size()), resource };
 }
 
+// 使用 fmt 格式化字符串，结果存储在 String 中，使用默认内存资源分配。
 template<typename... T>
 auto format(fmt::format_string<T...> fmt_str, T&&... args) -> String
 {
