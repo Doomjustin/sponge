@@ -30,6 +30,64 @@ TEST_CASE("numeric_cast reports out_of_range", "[spg_base_utility][numeric_cast]
     REQUIRE(ec == std::make_error_code(std::errc::result_out_of_range));
 }
 
+TEST_CASE("numeric_cast handles negative integers", "[spg_base_utility][numeric_cast]")
+{
+    auto [value, ec] = numeric_cast<int>("-456");
+
+    REQUIRE_FALSE(ec);
+    REQUIRE(value == -456);
+}
+
+TEST_CASE("numeric_cast handles zero", "[spg_base_utility][numeric_cast]")
+{
+    auto [value, ec] = numeric_cast<int>("0");
+
+    REQUIRE_FALSE(ec);
+    REQUIRE(value == 0);
+}
+
+TEST_CASE("numeric_cast handles large numbers", "[spg_base_utility][numeric_cast]")
+{
+    auto [value, ec] = numeric_cast<long long>("9223372036854775807");
+
+    REQUIRE_FALSE(ec);
+    REQUIRE(value == 9223372036854775807LL);
+}
+
+TEST_CASE("numeric_cast with unsigned type rejects negative", "[spg_base_utility][numeric_cast]")
+{
+    auto [value, ec] = numeric_cast<unsigned int>("-1");
+
+    (void)value;
+    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+}
+
+TEST_CASE("numeric_cast handles empty string", "[spg_base_utility][numeric_cast]")
+{
+    auto [value, ec] = numeric_cast<int>("");
+
+    (void)value;
+    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+}
+
+TEST_CASE("numeric_cast handles whitespace-only string", "[spg_base_utility][numeric_cast]")
+{
+    auto [value, ec] = numeric_cast<int>("   ");
+
+    (void)value;
+    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+}
+
+TEST_CASE("numeric_cast with partial valid number succeeds with leading digits",
+          "[spg_base_utility][numeric_cast]")
+{
+    // from_chars parses leading valid digits in "123abc"
+    auto [value, ec] = numeric_cast<int>("123abc");
+
+    REQUIRE_FALSE(ec);
+    REQUIRE(value == 123);
+}
+
 TEST_CASE("to_uppercase converts lowercase and keeps non-letters",
           "[spg_base_utility][to_uppercase]")
 {
@@ -44,4 +102,48 @@ TEST_CASE("to_lowercase converts uppercase and keeps non-letters",
     auto result{ to_lowercase("Ab1-?Z") };
 
     REQUIRE(result == "ab1-?z");
+}
+
+TEST_CASE("to_uppercase with empty string returns empty", "[spg_base_utility][to_uppercase]")
+{
+    auto result{ to_uppercase("") };
+
+    REQUIRE(result == "");
+}
+
+TEST_CASE("to_lowercase with empty string returns empty", "[spg_base_utility][to_lowercase]")
+{
+    auto result{ to_lowercase("") };
+
+    REQUIRE(result == "");
+}
+
+TEST_CASE("to_uppercase preserves already uppercase", "[spg_base_utility][to_uppercase]")
+{
+    auto result{ to_uppercase("HELLO WORLD") };
+
+    REQUIRE(result == "HELLO WORLD");
+}
+
+TEST_CASE("to_lowercase preserves already lowercase", "[spg_base_utility][to_lowercase]")
+{
+    auto result{ to_lowercase("hello world") };
+
+    REQUIRE(result == "hello world");
+}
+
+TEST_CASE("to_uppercase handles special characters and numbers",
+          "[spg_base_utility][to_uppercase]")
+{
+    auto result{ to_uppercase("aBc!@#$%^&*()123XyZ") };
+
+    REQUIRE(result == "ABC!@#$%^&*()123XYZ");
+}
+
+TEST_CASE("to_lowercase handles special characters and numbers",
+          "[spg_base_utility][to_lowercase]")
+{
+    auto result{ to_lowercase("aBc!@#$%^&*()123XyZ") };
+
+    REQUIRE(result == "abc!@#$%^&*()123xyz");
 }
