@@ -26,15 +26,15 @@ public:
 
     static auto size(gsl::not_null<char*> sds) noexcept -> size_t;
 
-    static auto size(gsl::not_null<char*> sds, size_t new_size) noexcept -> size_t;
+    static void size(gsl::not_null<char*> sds, size_t new_size) noexcept;
 
-    static auto increase_size(gsl::not_null<char*> sds, size_t size) noexcept -> size_t;
+    static void increase_size(gsl::not_null<char*> sds, size_t increment) noexcept;
 
-    static auto decrease_size(gsl::not_null<char*> sds, size_t size) noexcept -> size_t;
+    static void decrease_size(gsl::not_null<char*> sds, size_t decrement) noexcept;
 
     static auto capacity(gsl::not_null<char*> sds) noexcept -> size_t;
 
-    static auto capacity(gsl::not_null<char*> sds, size_t new_capacity) noexcept -> size_t;
+    static void capacity(gsl::not_null<char*> sds, size_t new_capacity) noexcept;
 
     static auto available(gsl::not_null<char*> sds) noexcept -> size_t;
 
@@ -45,6 +45,9 @@ private:
     using Type32 = uint32_t;
     using Type64 = uint64_t;
     std::pmr::memory_resource* resource_;
+
+    struct ForSize {};
+    static constexpr ForSize for_size{};
     
     enum class Flag : uint8_t {
         Type8,
@@ -96,7 +99,7 @@ private:
     }
 
     template<std::unsigned_integral Size>
-    static auto extract_capacity(char* sds) noexcept -> Size&
+    static auto extract_capacity(char* sds) noexcept -> Size
     {
         using SDS = BasicSDS<Size>;
         auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
@@ -104,13 +107,45 @@ private:
     } 
 
     template<std::unsigned_integral Size>
-    static auto extract_size(char* sds) noexcept -> Size&
+    static void update_capacity(char* sds, Size new_capacity) noexcept
+    {
+        using SDS = BasicSDS<Size>;
+        auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
+        header->capacity = new_capacity;
+    } 
+
+    template<std::unsigned_integral Size>
+    static auto extract_size(char* sds) noexcept -> Size
     {
         using SDS = BasicSDS<Size>;
         auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
         return header->size;
     }
     
+    template<std::unsigned_integral Size>
+    static void update_size(char* sds, Size new_size) noexcept
+    {
+        using SDS = BasicSDS<Size>;
+        auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
+        header->size = new_size;
+    }
+
+    template<std::unsigned_integral Size>
+    static void increase(char* sds, Size increment, ForSize for_size) noexcept
+    {
+        using SDS = BasicSDS<Size>;
+        auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
+        header->size += increment;
+    }
+
+    template<std::unsigned_integral Size>
+    static void decrease(char* sds, Size decrement, ForSize for_size) noexcept
+    {
+        using SDS = BasicSDS<Size>;
+        auto header = reinterpret_cast<SDS*>(sds - sizeof(SDS));
+        header->size -= decrement;
+    }
+
     template<std::unsigned_integral Size>
     static auto extract_available(char* sds) noexcept -> size_t
     {

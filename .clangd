@@ -1,5 +1,9 @@
 CompileFlags:
   CompilationDatabase: build
+  Remove: 
+    - "-fmodules-ts"
+    - "-fmodule-mapper=*"
+    - "-fdeps-format=*"
 
 Index:
   Background: Build

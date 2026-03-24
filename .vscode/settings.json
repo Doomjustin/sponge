@@ -1,6 +1,7 @@
 {
     "cmake.outputLogEncoding": "utf-8",
     "editor.formatOnSave": false, 
+    "clangd.path": "clangd",
     "cmake.configureSettings": {
         "CMAKE_TOOLCHAIN_FILE": "${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
     },

@@ -81,53 +81,65 @@ auto SDS::size(gsl::not_null<char*> sds) noexcept -> size_t
     }
 }
 
-auto SDS::size(gsl::not_null<char*> sds, size_t new_size) noexcept -> size_t
+void SDS::size(gsl::not_null<char*> sds, size_t new_size) noexcept
 {
     auto flag = extract_flag(sds);
     switch (flag) {
     case Flag::Type8: 
-        return extract_size<Type8>(sds) = new_size;
+        update_size<Type8>(sds, new_size);
+        break;
     case Flag::Type16:
-        return extract_size<Type16>(sds) = new_size;
+        update_size<Type16>(sds, new_size);
+        break;
     case Flag::Type32: 
-        return extract_size<Type32>(sds) = new_size;
+        update_size<Type32>(sds, new_size);
+        break;
     case Flag::Type64:
-        return extract_size<Type64>(sds) = new_size;
+        update_size<Type64>(sds, new_size);
+        break;
     default:
         std::unreachable();      
     }
 }
 
-auto SDS::increase_size(gsl::not_null<char*> sds, size_t size) noexcept -> size_t
+void SDS::increase_size(gsl::not_null<char*> sds, size_t increment) noexcept
 {
     auto flag = extract_flag(sds);
     switch (flag) {
     case Flag::Type8: 
-        return extract_size<Type8>(sds) += size;
+        increase<Type8>(sds, increment, for_size);
+        break;
     case Flag::Type16:
-        return extract_size<Type16>(sds) += size;
+        increase<Type16>(sds, increment, for_size);
+        break;
     case Flag::Type32: 
-        return extract_size<Type32>(sds) += size;
+        increase<Type32>(sds, increment, for_size);
+        break;
     case Flag::Type64:
-        return extract_size<Type64>(sds) += size;
+        increase<Type64>(sds, increment, for_size);
+        break;
     default:
         std::unreachable();
     } 
 }
 
-auto SDS::decrease_size(gsl::not_null<char*> sds, size_t size) noexcept -> size_t
+void SDS::decrease_size(gsl::not_null<char*> sds, size_t decrement) noexcept
 {
     auto raw = sds.get();
     auto flag = static_cast<Flag>(raw[-1]);
     switch (flag) {
     case Flag::Type8: 
-        return extract_size<Type8>(raw) -= size;
+        decrease<Type8>(raw, decrement, for_size);
+        break;
     case Flag::Type16:
-        return extract_size<Type16>(raw) -= size;
+        decrease<Type16>(raw, decrement, for_size);
+        break;
     case Flag::Type32: 
-        return extract_size<Type32>(raw) -= size;
+        decrease<Type32>(raw, decrement, for_size);
+        break;
     case Flag::Type64:
-        return extract_size<Type64>(raw) -= size;
+        decrease<Type64>(raw, decrement, for_size);
+        break;
     default:
         std::unreachable();
     }
@@ -151,18 +163,22 @@ auto SDS::capacity(gsl::not_null<char*> sds) noexcept -> size_t
     }
 }
 
-auto SDS::capacity(gsl::not_null<char*> sds, size_t new_capacity) noexcept -> size_t
+void SDS::capacity(gsl::not_null<char*> sds, size_t new_capacity) noexcept
 {
     auto flag = extract_flag(sds);
     switch (flag) {
     case Flag::Type8:
-        return extract_capacity<Type8>(sds) = new_capacity;
+        update_capacity<Type8>(sds, new_capacity);
+        break;
     case Flag::Type16:
-        return extract_capacity<Type16>(sds) = new_capacity;
+        update_capacity<Type16>(sds, new_capacity);
+        break;
     case Flag::Type32:
-        return extract_capacity<Type32>(sds) = new_capacity;
+        update_capacity<Type32>(sds, new_capacity);
+        break;
     case Flag::Type64:
-        return extract_capacity<Type64>(sds) = new_capacity;
+        update_capacity<Type64>(sds, new_capacity);
+        break;
     default:
         std::unreachable();
     }
