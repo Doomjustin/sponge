@@ -6,7 +6,9 @@
         "catch2",
         "boost-asio",
         "boost-beast",
-        "boost-uuid"
+        "boost-uuid",
+        "ctre",
+        "glaze"
     ],
     "name": "sponge",
     "version": "0.0.1",
