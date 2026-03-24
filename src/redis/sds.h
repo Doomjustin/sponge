@@ -2,6 +2,7 @@
 #define SPONGE_REDIS_SDS_H
 
 #include <algorithm>
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -122,6 +123,7 @@ private:
     auto create_sds(std::string_view str, size_t capacity) noexcept -> char*
     {
         using SDS = BasicSDS<Size>;
+        assert(capacity >= str.size());
 
         capacity = std::max(capacity, str.size());
         auto total_size = sizeof(SDS) + capacity + 1; // +1 for null terminator

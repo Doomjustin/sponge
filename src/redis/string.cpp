@@ -144,6 +144,16 @@ void String::clear() noexcept
     sds_[0] = '\0';
 }
 
+void String::shrink_to_fit()
+{
+    if (available() == 0) return;
+
+    SDS manager{ resource_ };
+    auto new_sds = manager.create(sds_, size());
+    manager.destroy(sds_);
+    sds_ = new_sds;
+}
+
 void String::assign(std::string_view str)
 {
     if (str.size() > capacity())

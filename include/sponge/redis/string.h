@@ -73,6 +73,9 @@ public:
     // 将逻辑长度清零，保留已分配容量。
     void clear() noexcept;
 
+    // 将容量收缩到当前 size()，释放多余内存。
+    void shrink_to_fit();
+
     // 用 str 替换当前内容。
     // 当容量足够时复用现有存储。
     void assign(std::string_view str);
@@ -88,6 +91,13 @@ public:
     // 在需要重分配前，剩余可写字节数。
     [[nodiscard]]
     auto available() const noexcept -> size_t;
+
+    // 是否为空字符串。
+    [[nodiscard]]
+    auto empty() const noexcept -> bool
+    {
+        return size() == 0;
+    }
 
     // 当前字符串数据的非拥有视图。
     [[nodiscard]]
