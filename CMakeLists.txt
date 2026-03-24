@@ -20,6 +20,7 @@ include(AddModule)
 find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS asio beast uuid)
 
 if (${PROJECT_NAME}_BUILD_TESTS)
    find_package(Catch2 CONFIG REQUIRED)
