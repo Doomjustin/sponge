@@ -12,21 +12,25 @@
 
 namespace spg {
 
-class IOContextPool {
+class IOContexts {
 public:
     using Context = boost::asio::io_context;
     using ContextPtr = std::shared_ptr<Context>;
     using WorkGuard = boost::asio::executor_work_guard<Context::executor_type>;
     using Size = std::size_t;
 
-    explicit IOContextPool(Size size);
+    explicit IOContexts(Size size);
 
-    IOContextPool(const IOContextPool&) = delete;
-    auto operator=(const IOContextPool&) = delete;
+    IOContexts(const IOContexts&) = delete;
+    auto operator=(const IOContexts&) = delete;
 
-    ~IOContextPool();
+    ~IOContexts();
+
+    void run();
 
     void stop();
+
+    void force_stop();
 
     [[nodiscard]]
     constexpr auto size() const noexcept -> Size
@@ -41,6 +45,8 @@ private:
     std::vector<std::jthread> threads_;
     std::list<WorkGuard> works_;
     Size next_io_context_ = 0;
+
+    void join_threads();
 };
 
 } // namespace spg

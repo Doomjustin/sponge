@@ -17,3 +17,7 @@ spg_add_module(leveldb leveldb
         fmt::fmt
         Microsoft.GSL::GSL
 )
+
+add_executable(sponge.redis-server redis_server.cpp)
+target_compile_features(sponge.redis-server PRIVATE cxx_std_23)
+target_link_libraries(sponge.redis-server PRIVATE sponge::redis)

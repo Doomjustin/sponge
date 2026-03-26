@@ -8,7 +8,7 @@ namespace asio = boost::asio;
 
 namespace spg {
 
-IOContextPool::IOContextPool(Size size)
+IOContexts::IOContexts(Size size)
 {
     assert(size > 0);
 
@@ -16,20 +16,38 @@ IOContextPool::IOContextPool(Size size)
         auto context = std::make_shared<asio::io_context>();
         io_contexts_.push_back(context);
         works_.push_back(asio::make_work_guard(*context));
-        threads_.emplace_back([context]() { context->run(); });
     }
 }
 
-IOContextPool::~IOContextPool()
+IOContexts::~IOContexts()
 {
-    stop();
-    std::ranges::for_each(threads_, [](auto& thread) { thread.join(); });
+    force_stop();
+    join_threads();
 }
 
-void IOContextPool::stop()
+void IOContexts::run()
 {
-    auto stop_context = [](auto& ctx) -> void { ctx->stop(); };
-    std::ranges::for_each(io_contexts_, stop_context);
+    for (size_t i = 1; i < io_contexts_.size(); ++i)
+        threads_.emplace_back([this, i] () { io_contexts_[i]->run(); });
+
+    io_contexts_[0]->run();
+
+    join_threads();
+}
+
+void IOContexts::stop()
+{
+    std::ranges::for_each(works_, [](auto& work) { work.reset(); });
+}
+
+void IOContexts::force_stop()
+{
+    std::ranges::for_each(io_contexts_, [](auto& ctx) -> void { ctx->stop(); });
+}
+
+void IOContexts::join_threads()
+{
+    std::ranges::for_each(threads_, [](auto& thread) { if (thread.joinable()) thread.join(); });
 }
 
 } // namespace spg

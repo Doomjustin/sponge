@@ -10,6 +10,8 @@ enum class ValueType : uint8_t {
     Value = 1 
 };
 
+using SequenceNumber = uint64_t;
+
 } // namespace spg::leveldb
 
 #endif // SPONGE_LEVELDB_FORMATS_H

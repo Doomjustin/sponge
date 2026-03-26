@@ -21,8 +21,6 @@ concept WriteBatchHandler = requires(T handler, std::string_view key, std::strin
 
 class WriteBatch {
 public:
-    using SequenceNumber = uint64_t;
-
     WriteBatch() { rep_.resize(HEADER_SIZE); }
 
     void clear();

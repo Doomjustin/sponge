@@ -1,4 +1,4 @@
-#include <sponge/redis/protocol.h>
+#include "protocol.h"
 
 #include <cassert>
 #include <charconv>
@@ -57,8 +57,7 @@ auto parse_bulk_string(const char* begin, const char* const end) -> BulkParseRes
 }
 
 // expected: *3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n
-auto parse_array_command(const char* begin, const char* const end, std::pmr::memory_resource* resource) 
-    -> resp::Command
+auto parse_array_command(const char* begin, const char* const end, std::pmr::memory_resource* resource) -> resp::Command
 {
     resp::Command command{ resource };
 
@@ -88,8 +87,7 @@ auto parse_array_command(const char* begin, const char* const end, std::pmr::mem
     return command;
 }
 
-auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* resource)
-    -> ParseResult
+auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* resource) -> ParseResult
 {
     ParseResult result{ resource };
     const auto* ptr = buffer.data();

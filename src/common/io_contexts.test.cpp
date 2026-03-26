@@ -12,14 +12,14 @@ using namespace std::literals;
 
 TEST_CASE("IOContextPool reports configured size", "[spg_base_io_contexts][size]")
 {
-    IOContextPool pool{ 3 };
+    IOContexts pool{ 3 };
 
     REQUIRE(pool.size() == 3);
 }
 
 TEST_CASE("IOContextPool executes posted work", "[spg_base_io_contexts][post]")
 {
-    IOContextPool pool{ 2 };
+    IOContexts pool{ 2 };
     std::promise<void> done;
     auto done_future{ done.get_future() };
     std::atomic<bool> ran{ false };
@@ -36,7 +36,7 @@ TEST_CASE("IOContextPool executes posted work", "[spg_base_io_contexts][post]")
 TEST_CASE("IOContextPool stop prevents newly posted work from running",
           "[spg_base_io_contexts][stop]")
 {
-    IOContextPool pool{ 1 };
+    IOContexts pool{ 1 };
     std::atomic<bool> executed{ false };
 
     pool.stop();

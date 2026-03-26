@@ -68,7 +68,7 @@ public:
 private:
     using Pool = std::pmr::unsynchronized_pool_resource;
 
-    IOContextPool io_context_pool;
+    IOContexts io_context_pool;
     std::vector<std::unique_ptr<Pool>> pools;
     std::vector<std::unique_ptr<TrackingMemoryResource>> resources;
     std::pmr::vector<DBShard> shards;

@@ -1,4 +1,4 @@
-#include <sponge/redis/dash_table.h>
+#include "dash_table.h"
 
 #include <catch2/catch_test_macros.hpp>
 
