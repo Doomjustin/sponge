@@ -8,84 +8,84 @@ using namespace spg;
 
 TEST_CASE("numeric_cast parses valid integer", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<int>("123");
+    auto res = numeric_cast<int>("123");
 
-    REQUIRE_FALSE(ec);
-    REQUIRE(value == 123);
+    REQUIRE(res);
+    REQUIRE(*res == 123);
 }
 
 TEST_CASE("numeric_cast reports invalid_argument", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<int>("abc");
+    auto res = numeric_cast<int>("abc");
 
-    (void)value;
-    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+    REQUIRE_FALSE(res);
+    REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
 TEST_CASE("numeric_cast reports out_of_range", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<std::int8_t>("200");
+    auto res = numeric_cast<std::int8_t>("200");
 
-    (void)value;
-    REQUIRE(ec == std::make_error_code(std::errc::result_out_of_range));
+    REQUIRE_FALSE(res);
+    REQUIRE(res.error() == std::make_error_code(std::errc::result_out_of_range));
 }
 
 TEST_CASE("numeric_cast handles negative integers", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<int>("-456");
+    auto res = numeric_cast<int>("-456");
 
-    REQUIRE_FALSE(ec);
-    REQUIRE(value == -456);
+    REQUIRE(res);
+    REQUIRE(*res == -456);
 }
 
 TEST_CASE("numeric_cast handles zero", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<int>("0");
+    auto res = numeric_cast<int>("0");
 
-    REQUIRE_FALSE(ec);
-    REQUIRE(value == 0);
+    REQUIRE(res);
+    REQUIRE(*res == 0);
 }
 
 TEST_CASE("numeric_cast handles large numbers", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<long long>("9223372036854775807");
+    auto res = numeric_cast<long long>("9223372036854775807");
 
-    REQUIRE_FALSE(ec);
-    REQUIRE(value == 9223372036854775807LL);
+    REQUIRE(res);
+    REQUIRE(*res == 9223372036854775807LL);
 }
 
 TEST_CASE("numeric_cast with unsigned type rejects negative", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<unsigned int>("-1");
+    auto res = numeric_cast<unsigned int>("-1");
 
-    (void)value;
-    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+    REQUIRE_FALSE(res);
+    REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
 TEST_CASE("numeric_cast handles empty string", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<int>("");
+    auto res = numeric_cast<int>("");
 
-    (void)value;
-    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+    REQUIRE_FALSE(res);
+    REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
 TEST_CASE("numeric_cast handles whitespace-only string", "[spg_base_utility][numeric_cast]")
 {
-    auto [value, ec] = numeric_cast<int>("   ");
+    auto res = numeric_cast<int>("   ");
 
-    (void)value;
-    REQUIRE(ec == std::make_error_code(std::errc::invalid_argument));
+    REQUIRE_FALSE(res);
+    REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
 TEST_CASE("numeric_cast with partial valid number succeeds with leading digits",
           "[spg_base_utility][numeric_cast]")
 {
     // from_chars parses leading valid digits in "123abc"
-    auto [value, ec] = numeric_cast<int>("123abc");
+    auto res = numeric_cast<int>("123abc");
 
-    REQUIRE_FALSE(ec);
-    REQUIRE(value == 123);
+    REQUIRE(res);
+    REQUIRE(*res == 123);
 }
 
 TEST_CASE("to_uppercase converts lowercase and keeps non-letters",

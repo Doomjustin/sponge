@@ -2,6 +2,7 @@
 #define SPONGE_UTILITY_H
 
 #include <charconv>
+#include <expected>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -9,11 +10,18 @@
 namespace spg {
 
 template<typename T>
-auto numeric_cast(std::string_view str) -> std::pair<T, std::error_code>
+auto numeric_cast(std::string_view str) -> std::expected<T, std::error_code>
 {
-    T value;
+    T value{};
     auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
-    return { value, std::make_error_code(ec) };
+
+    if (ec != std::errc{})
+        return std::unexpected(std::make_error_code(ec));
+
+    if (ptr != str.data() + str.size())
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+
+    return value;
 }
 
 auto to_uppercase(std::string_view input) -> std::string;

@@ -231,6 +231,7 @@ Redis 模块的公开头文件位于 [include/sponge/redis](include/sponge/redis
 
 - [include/sponge/redis/server.h](include/sponge/redis/server.h)
 - [include/sponge/redis/string.h](include/sponge/redis/string.h)
+- [include/sponge/redis/list_pack.h](include/sponge/redis/list_pack.h)
 
 示例程序见 [src/redis_server.cpp](src/redis_server.cpp)。模块详细说明见 [docs/redis/README.md](docs/redis/README.md)。
 
