@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <memory_resource>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -44,6 +45,12 @@ public:
         push_back(static_cast<int64_t>(value));
     }
 
+    template<std::floating_point T>
+    void push_back(T value)
+    {
+        push_back(std::to_string(value));
+    }
+
     void insert(Iterator pos, std::string_view view);
 
     void insert(Iterator pos, int64_t value);
@@ -53,6 +60,13 @@ public:
     void insert(Iter pos, T value)
     {
         insert(pos, static_cast<int64_t>(value));
+    }
+
+    template<typename Iter, std::floating_point T>
+        requires std::is_same_v<Iter, Iterator>
+    void insert(Iter pos, T value)
+    {
+        insert(pos, std::to_string(value));
     }
 
     void erase(Iterator pos);

@@ -1,6 +1,8 @@
 #include <sponge/utility.h>
 
+#include <cmath>
 #include <cstdint>
+#include <limits>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -78,14 +80,14 @@ TEST_CASE("numeric_cast handles whitespace-only string", "[spg_base_utility][num
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast with partial valid number succeeds with leading digits",
+TEST_CASE("numeric_cast with partial valid number reports invalid_argument",
           "[spg_base_utility][numeric_cast]")
 {
-    // from_chars parses leading valid digits in "123abc"
+    // numeric_cast 要求整串完全匹配，因此 "123abc" 应视为非法。
     auto res = numeric_cast<int>("123abc");
 
-    REQUIRE(res);
-    REQUIRE(*res == 123);
+    REQUIRE_FALSE(res);
+    REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
 TEST_CASE("to_uppercase converts lowercase and keeps non-letters",
@@ -146,4 +148,17 @@ TEST_CASE("to_lowercase handles special characters and numbers",
     auto result{ to_lowercase("aBc!@#$%^&*()123XyZ") };
 
     REQUIRE(result == "abc!@#$%^&*()123xyz");
+}
+
+TEST_CASE("string_cast converts floating point and can parse back", "[spg_base_utility][string_cast]")
+{
+    const double input = 3.141592653589793;
+    auto text = string_cast(input);
+
+    REQUIRE(text);
+    REQUIRE(!text->empty());
+
+    auto parsed = numeric_cast<double>(*text);
+    REQUIRE(parsed);
+    CHECK(std::abs(*parsed - input) <= std::numeric_limits<double>::epsilon() * std::abs(input));
 }

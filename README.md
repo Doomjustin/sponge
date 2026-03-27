@@ -56,6 +56,7 @@
 - HTTP 模块文档：[docs/http/README.md](docs/http/README.md)
 - LevelDB 模块文档：[docs/leveldb/README.md](docs/leveldb/README.md)
 - Redis 模块文档：[docs/redis/README.md](docs/redis/README.md)
+- 性能基准测试：[benchmark/README.md](benchmark/README.md)
 - 构建入口：[CMakeLists.txt](CMakeLists.txt)
 - 模块注册逻辑：[cmake/AddModule.cmake](cmake/AddModule.cmake)
 
@@ -336,6 +337,37 @@ curl -i -X POST http://127.0.0.1:14444/new_user \
 ctest --test-dir build --output-on-failure
 ```
 
+## 性能基准测试
+
+项目在 `benchmark/` 目录下提供了性能对比基准测试，用于评估关键数据结构在 C++ 环境中的性能表现：
+
+**可用的基准测试程序：**
+
+- `sds_vs_string_benchmark`：redis::String 与 std::string 的综合性能对比
+- `sds_template_vs_polymorphic`：模板版本与多态版本的虚函数开销测试
+- `cpp_string_verdict`：完整的性能评估与使用建议
+- `pmr_string_comparison` ⭐：在公平 PMR 条件下的 std::string vs std::pmr::string vs redis::String 对比
+- `arena_and_size_benchmark` ⭐ **新增**：Arena 分配器影响 + 短字符串 vs 长字符串分析
+
+**运行基准测试：**
+
+```bash
+./build/benchmark/sds_vs_string_benchmark
+./build/benchmark/sds_template_vs_polymorphic
+./build/benchmark/cpp_string_verdict
+./build/benchmark/pmr_string_comparison
+./build/benchmark/arena_and_size_benchmark   # 实战场景分析
+```
+
+**性能数据要点：**
+
+- **Arena 分配器的威力**：减少分配开销 3 倍以上
+- **std::pmr::string + Arena**：甚至比 std::string 更快（灵活 + 性能兼得）
+- **SSO 的关键性**：std::string 短字符串创建 ~0ms，redis::String 5863ms
+- **std::string 性能一致**：无论字符串大小都保持高性能
+- **redis::String 始终较慢**：即使配合最优条件仍然因架构而慢
+- 详见 [docs/redis/README.md](docs/redis/README.md) 中的性能分析章节和 [benchmark/README.md](benchmark/README.md)
+
 ## 仓库结构
 
 ```text
@@ -352,6 +384,13 @@ src/
   redis/           Redis 模块实现与测试
   http_server.cpp  HTTP 示例程序
   redis_server.cpp Redis 示例程序
+
+benchmark/
+  sds_vs_string_benchmark.cpp              redis::String vs std::string 综合对比
+  sds_template_vs_polymorphic.cpp          多态 vs 模板版本的虚函数开销分析
+  cpp_string_verdict.cpp                   C++ 字符串方案评估与结论
+  pmr_string_comparison.cpp                std::string vs std::pmr::string vs redis::String 公平对比
+  arena_and_size_benchmark.cpp             Arena 分配器 + 短字符串影响分析
 
 docs/
   README.md        文档索引

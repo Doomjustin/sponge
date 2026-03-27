@@ -199,6 +199,82 @@ resp::parse_request(std::string_view buffer, std::pmr::memory_resource* resource
 - string_cast：把整数转换为 String
 - format：把 fmt 格式化结果直接写入 String
 
+#### 性能对比与使用建议
+
+String 基于 Redis SDS（Simple Dynamic String）底层实现，提供了与原生 Redis 一致的数据结构语义。然而在 C++ 环境中，需要理解其与 `std::string` 的性能差异：
+
+**性能对比（基准测试结果）：**
+
+| 场景 | std::string | std::pmr::string | redis::String | 相对倍数 |
+|------|:----------:|:---------------:|:-------------:|:-------:|
+| size() 查询 (500M) | 113 ms | 115 ms | 5249 ms | **46.4x** |
+| 创建字符串 (5M) | 61 ms | 216 ms | 609 ms | **10x** |
+| Append (1M) | 28 ms | 124 ms | 386 ms | **13.8x** |
+| capacity() 查询 (100M) | 22 ms | 44 ms | 633 ms | **28.6x** |
+| 内存占用 (1M × 100B) | 125.89 MB | 133.51 MB | 110.63 MB | 11% 少 |
+
+**关键发现：**
+
+🎯 **std::pmr::string 与 std::string 性能相近**（1x-4.4x）
+- 说明 PMR 本身的虚函数开销很小
+- 编译器能充分优化虚函数调用
+- 性能差异主要来自内存分配策略
+
+🎯 **redis::String 即使在公平的 PMR 条件下仍然极其缓慢**（10-46.4x）
+- 这彻底证明了性能问题的根源
+- **不是 PMR 的问题**（std::pmr::string 很快）
+- **不是虚函数的问题**（std::pmr::string 使用虚函数但很快）
+- **而是 SDS 架构设计本身**
+
+**性能劣势根本原因分析：**
+
+1. **虚函数调用开销**（可优化的 ~24%）
+   - ✓ 实测验证：std::pmr::string 只慢 1.01x，虚函数开销已充分优化
+   - redis::String 的虚函数贡献不超过总性能差异的 1/4
+
+2. **类型分派成本**（难优化的 ~15-20%）
+   - SDS 使用 4 分支 switch 进行运行时类型选择（Type8/16/32/64）
+   - 编译器无法完全消除这个分派开销
+
+3. **间接寻址与架构差异**（根本性的 ~50-70%）
+   - SDS 采用后向布局（header before data）
+   - 每次访问 size/capacity 需要指针运算回溯定位 header
+   - std::string 直接内联存储，编译器充分内联优化
+   - CPU 缓存表现差异显著
+   - 这是根本的架构差异，**无法通过优化消除**
+
+**使用建议：**
+
+- ✅ **一般 C++ 应用**：优先使用 `std::string`，性能全面领先（基准选择）
+- ✅ **自定义内存管理**：使用 `std::pmr::string`，几乎无性能损失
+- ✅ **大量小对象场景**：优先利用 std::string 的 SSO（短字符串零成本）
+- ✅ **性能关键路径**：必须选择 `std::string`
+- ✅ **内存约束场景**：若追求极限紧凑，String 可节省 ~11% 内存（代价是 10-46x 性能）
+- ✅ **Arena 分配器**：若需要自定义分配，std::pmr::string + Arena 甚至比 std::string 更快
+- ✅ **Redis 源码学习**：String 帮助理解 SDS 底层结构设计
+
+**关键性能发现：**
+
+1. **Arena 分配器效果明显** — 减少分配开销 3 倍以上
+   - std::pmr::monotonic_buffer_resource 是很好的选择
+   - 即使配合 Arena，redis::String 仍因架构而慢
+
+2. **SSO (Small String Optimization) 至关重要** — 短字符串创建几乎无成本
+   - std::string 对 ≤23B 字符串避免分配
+   - redis::String 每次都要付出硬件代价（5863ms 对 100M 次创建）
+   - 实际应用中很常见（HTTP 头、URL 参数等）
+
+3. **字符串大小对性能无影响** — 根本是架构差异
+   - std::string 性能一致（1B 到 10KB 都是 ~22ms）
+   - redis::String 性能也一致（1B 到 10KB 都是 ~1050ms）
+   - 说明不是 SSO 问题，而是寻址和类型分派成本
+
+**结论**：String 主要用于**学习与研究**，深刻理解为什么 Redis 在 C 中选择了 SDS 设计。生产环境中应该选择 `std::string` 或 `std::pmr::string`。
+
+详细的性能分析见：[benchmark/README.md](../../benchmark/README.md)
+- PMR 公平对比：[benchmark/README.md#4-pmr_string_comparison--new](../../benchmark/README.md#4-pmr_string_comparison--new)
+- Arena & 字符串大小分析：[benchmark/README.md#5-arena_and_size_benchmark--new](../../benchmark/README.md#5-arena_and_size_benchmark--new)
+
 ### 4. ApplicationContext 与分片
 
 Redis 模块的内部结构不是单一全局哈希表，而是已经引入了 ApplicationContext 和 DBShard 这样的运行时组织方式。
