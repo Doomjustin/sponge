@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <type_traits>
 
 namespace spg {
 
@@ -48,6 +49,15 @@ auto string_cast(T value) -> std::expected<std::string, std::error_code>
 auto to_uppercase(std::string_view input) -> std::string;
 
 auto to_lowercase(std::string_view input) -> std::string;
+
+template<typename T, template <typename...> class Template>
+struct is_specialization_of: std::false_type {};
+
+template<template <typename...> class Template, typename... Args>
+struct is_specialization_of<Template<Args...>, Template>: std::true_type {};
+
+template<template <typename...> class Template, typename... Args>
+inline constexpr bool is_specialization_of_v = is_specialization_of<Args..., Template>::value;
 
 } // namespace spg
 

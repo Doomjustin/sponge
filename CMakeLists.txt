@@ -27,6 +27,7 @@ find_package(Boost REQUIRED
         asio 
         beast 
         uuid
+        unordered
 )
 
 if (${PROJECT_NAME}_BUILD_TESTS)

@@ -1,0 +1,128 @@
+#include "commands.h"
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <span>
+#include <string_view>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+
+#include <sponge/utility.h>
+
+namespace spg::redis {
+namespace {
+
+template<typename T>
+struct FunctionTraits;
+
+template<typename Return, typename Context, typename... Args>
+struct FunctionTraits<Return(*)(Context&, Args...)> {
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+using CommandHandler = void(*)(Context&, std::span<const std::string_view>);
+
+template<typename T>
+auto parse_arg(std::string_view sv) -> T
+{
+    if constexpr (std::is_same_v<T, std::string_view>) {
+        return sv;
+    }
+    else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+        auto value = numeric_cast<T>(sv);
+        if (!value)
+            throw std::invalid_argument("Failed to parse argument: " + std::string(sv));
+        return *value;
+    }
+    else {
+        static_assert(false, "Unsupported argument type");
+    }
+}
+
+template <auto Func>
+constexpr auto bind_command() -> CommandHandler
+{
+    using Traits = FunctionTraits<decltype(Func)>;
+    constexpr size_t expected_arity = Traits::arity;
+
+    return +[](Context& context, std::span<const std::string_view> args) -> void
+    {
+        if (args.size() != expected_arity) {
+            context.reply.append(Error{ "ERR wrong number of arguments" });
+            return;
+        }
+
+        auto invoker = [&]<size_t... Is>(std::index_sequence<Is...>)
+        {
+            try {
+                Func(context, parse_arg<std::tuple_element_t<Is, typename Traits::args_tuple>>(args[Is])...);
+            }
+            catch (const std::exception& ex) {
+                context.reply.append(Error{ fmt::format("ERR {}", ex.what()) });
+            }
+        };
+
+        invoker(std::make_index_sequence<expected_arity>{});
+    };
+}
+
+struct common {
+    common() = delete;
+
+    static void set(Context& context, std::string_view key, std::string_view value)
+    {
+        // TODO: 将 key-value 存入 context.db_shard
+        context.reply.append(ok);
+    }
+
+    static void get(Context& context, std::string_view key)
+    {
+        // TODO: 从 context.db_shard 获取值并返回
+        context.reply.append(ok);
+    }
+};
+
+struct Command {
+    std::string_view name;
+    CommandHandler handler;
+};
+
+constexpr std::array<Command, 2> commands {{
+    { .name="SET", .handler=bind_command<&common::set>() },
+    { .name="GET", .handler=bind_command<&common::get>() },
+}};
+
+// 为了后续的二分查找，我们需要保证 commands 数组是按 name 排序的
+consteval auto build_sorted_commands()
+{
+    auto cmds = commands;
+    std::ranges::sort(cmds,[] (const auto& lhs, const auto& rhs) { return lhs.name < rhs.name;});
+    return cmds;
+}
+
+constexpr auto sorted_commands = build_sorted_commands();
+
+} // namespace
+
+
+void commands::dispatch(Context& context, std::span<const std::string_view> cmd)
+{
+    auto name = to_uppercase(cmd[0]);
+    auto it = std::ranges::lower_bound(sorted_commands, 
+                                                        std::string_view{ name }, 
+                                                        std::ranges::less{}, 
+                                                        &Command::name);
+
+    if (it != sorted_commands.end() && it->name == name) {
+        std::span<const std::string_view> args{ cmd.data() + 1, cmd.size() - 1 };
+        it->handler(context, args);
+    }
+    else {
+        context.reply.append(Error{ fmt::format("ERR unknown command '{}'", name) });
+    }
+}
+
+} // namespace spg::redis

@@ -16,7 +16,7 @@ namespace spg::redis {
 
 // 更激进扩容策略的标签类型。
 struct ExpandGreedyTag{};
-static constexpr ExpandGreedyTag greedy{};
+inline constexpr ExpandGreedyTag greedy{};
 
 // 基于 SDS 的 Redis 风格动态字符串。
 //

@@ -9,6 +9,8 @@ spg_add_module(redis redis
         sponge::common
         fmt::fmt
         Microsoft.GSL::GSL
+        Boost::unordered
+        Boost::asio
 )
 
 spg_add_module(leveldb leveldb

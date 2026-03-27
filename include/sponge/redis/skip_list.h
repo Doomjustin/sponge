@@ -13,7 +13,7 @@
 namespace spg::redis {
 
 struct ByRankTag {};
-static constexpr ByRankTag by_rank{};
+inline constexpr ByRankTag by_rank{};
 
 
 // 这是 Redis 风格的内部跳表组件，不是通用容器。
@@ -35,8 +35,8 @@ public:
     SkipList(const SkipList&) = delete;
     auto operator=(const SkipList&) -> SkipList& = delete;
 
-    SkipList(SkipList&&) = delete;
-    auto operator=(SkipList&&) -> SkipList& = delete;
+    SkipList(SkipList&&) = default;
+    auto operator=(SkipList&&) -> SkipList& = default;
 
     ~SkipList();
 
