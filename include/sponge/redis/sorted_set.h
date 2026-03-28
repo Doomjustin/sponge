@@ -25,6 +25,8 @@ public:
 
     auto add(Score score, Member member) -> bool;
 
+    auto score(Member member) -> std::optional<Score>;
+
 private:
     using String = std::pmr::string;
     using Allocator = std::pmr::polymorphic_allocator<std::pair<String, Score>>;

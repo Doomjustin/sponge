@@ -1,6 +1,7 @@
 #include "command.h"
 
 #include <cstdint>
+#include <mutex>
 
 #include <boost/asio.hpp>
 
@@ -13,6 +14,156 @@
 namespace asio = boost::asio;
 
 namespace spg::redis {
+
+// -------- key commands --------
+
+void command::exists(CommandContext& context, std::span<const std::string_view> args)
+{
+    if (args.empty()) {
+        context.reply.append(Error{ "ERR wrong number of arguments for 'EXISTS' command" });
+        return;
+    }
+
+    int count = 0;
+    for (const auto& key : args) {
+        auto exists_key = [&] (auto& handler)
+        {
+            if (handler.exists())
+                ++count;
+        };
+
+        context.shard(key).modify(key, exists_key);
+    }
+
+    context.reply.append(count);
+}
+
+void command::del(CommandContext& context, std::span<const std::string_view> args)
+{
+    if (args.empty()) {
+        context.reply.append(Error{ "ERR wrong number of arguments for 'DEL' command" });
+        return;
+    }
+
+    int count = 0;
+    for (const auto& key : args) {
+        auto del_key = [&] (auto& handler)
+        {
+            if (handler.erase())
+                ++count;
+        };
+
+        context.shard(key).modify(key, del_key);
+    }
+
+    context.reply.append(count);
+}
+
+void command::expire(CommandContext& context, std::string_view key, int64_t seconds)
+{
+    auto expire_key = [&] (auto& handler)
+    {
+        if (handler.expire(seconds * 1000))
+            context.reply.append(ok);
+        else
+            context.reply.append(-2); // -2 表示不存在
+    };
+    
+    context.shard(key).modify(key, expire_key);
+}
+
+void command::persist(CommandContext& context, std::string_view key)
+{
+    auto persist_key = [&] (auto& handler)
+    {
+        if (handler.persist())
+            context.reply.append(ok);
+        else
+            context.reply.append(-2); // -2 表示不存在
+    };
+
+    context.shard(key).modify(key, persist_key);
+}
+
+void command::ttl(CommandContext& context, std::string_view key)
+{
+    auto ttl_key = [&] (auto& handler)
+    {
+        // TODO: 实现的耦合有点高，后续有空调整
+        if (auto ttl = handler.ttl())
+            context.reply.append(*ttl);
+        else
+            context.reply.append(-2); // -2 表示不存在
+    };
+
+    context.shard(key).modify(key, ttl_key);
+}
+
+void command::type(CommandContext& context, std::string_view key)
+{
+    auto type_key = [&] (auto& handler)
+    {
+        if (!handler.exists()) {
+            context.reply.append(BulkString{ "none" });
+            return;
+        }
+
+        if (handler.get_if(as_type<DBShard::String>))
+            context.reply.append(BulkString{ "string" });
+        else if (handler.get_if(as_type<DBShard::Integral>))
+            context.reply.append(BulkString{ "integer" });
+        else if (handler.get_if(as_type<DBShard::ZSet>))
+            context.reply.append(BulkString{ "zset" });
+        else
+            context.reply.append(BulkString{ "unknown" });
+    };
+
+    context.shard(key).modify(key, type_key);
+}
+
+void command::rename(CommandContext& context, std::string_view old_key, std::string_view new_key)
+{
+    if (old_key == new_key) {
+        context.reply.append(ok);
+        return;
+    }
+
+    auto old_index = context.index(old_key);
+    auto new_index = context.index(new_key);
+
+    if (old_index == new_index) {
+        auto rename_key = [&] (auto& handler)
+        {
+            if (handler.rename(new_key))
+                context.reply.append(ok);
+            else
+                context.reply.append(-2); // -2 表示不存在
+        };
+
+        context.shard(old_index).modify(old_key, rename_key);
+        return;
+    }
+
+    // 跨 shard 重命名，先访问旧 key 获取数据，再修改新 key
+    auto& old_shard = context.shard(old_index);
+    auto& new_shard = context.shard(new_index); 
+
+    std::unique_lock old_locker{ old_shard.mutex_of(old_key), std::defer_lock };
+    std::unique_lock new_locker{ new_shard.mutex_of(new_key), std::defer_lock };
+    std::lock(old_locker, new_locker);
+
+    auto old_entry = old_shard.get_entry(old_key);
+    if (!old_entry) {
+        context.reply.append(-2); // -2 表示不存在
+        return;
+    }
+
+    new_shard.set(new_key, std::move(*old_entry));
+    old_shard.erase(old_key);
+    context.reply.append(ok);
+}
+
+// -------- string commands --------
 
 // SET key value [EX seconds|PX milliseconds] [NX|XX]
 void command::set(CommandContext& context, std::span<const std::string_view> args)
@@ -104,7 +255,7 @@ void command::get(CommandContext& context, std::string_view key)
             context.reply.append(null_string);
     };
    
-    context.shard(key).access(key, get_string);
+    context.shard(key).modify(key, get_string);
 }
 
 void command::strlen(CommandContext& context, std::string_view key)
@@ -112,40 +263,15 @@ void command::strlen(CommandContext& context, std::string_view key)
     auto strlen_string = [&] (auto& handler)
     {
         if (auto* str = handler.get_if(as_type<DBShard::String>))
-            context.reply.append(static_cast<int64_t>(str->size()));
+            context.reply.append(str->size());
         else
             context.reply.append(0);
     };
 
-    context.shard(key).access(key, strlen_string);
+    context.shard(key).modify(key, strlen_string);
 }
 
-void command::expire(CommandContext& context, std::string_view key, int64_t seconds)
-{
-    auto expire_key = [&] (auto& handler)
-    {
-        if (handler.expire(seconds * 1000))
-            context.reply.append(ok);
-        else
-            context.reply.append(-2); // -2 表示不存在
-    };
-    
-    context.shard(key).modify(key, expire_key);
-}
-
-void command::ttl(CommandContext& context, std::string_view key)
-{
-    auto ttl_key = [&] (auto& handler)
-    {
-        // TODO: 实现的耦合有点高，后续有空调整
-        if (auto ttl = handler.ttl())
-            context.reply.append(*ttl);
-        else
-            context.reply.append(-2); // -2 表示不存在
-    };
-
-    context.shard(key).access(key, ttl_key);
-}
+// -------- sorted set commands --------
 
 void command::zadd(CommandContext& context, std::span<const std::string_view> args)
 {
@@ -191,6 +317,25 @@ void command::zadd(CommandContext& context, std::span<const std::string_view> ar
     };
 
     context.shard(key).modify(key, add_to_zset);
+}
+
+void command::zscore(CommandContext& context, std::string_view key, std::string_view member)
+{
+    auto zscore_key = [&] (auto& handler)
+    {
+        auto* zset = handler.get_if(as_type<DBShard::ZSet>);
+        if (!zset) {
+            context.reply.append(Error{ fmt::format("ERR key '{}' does not hold a sorted set", key) });
+            return;
+        }
+
+        if (auto score = zset->score(member))
+            context.reply.append(BulkString{ fmt::format("{}", *score) });
+        else
+            context.reply.append(null_string);
+    };
+
+    context.shard(key).modify(key, zscore_key);
 }
 
 } // namespace spg::redis

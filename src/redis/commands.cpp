@@ -83,12 +83,22 @@ struct Command {
     Type type;
 };
 
-constexpr std::array<Command, 5> commands {
-    Command{ .name="SET", .handler=&command::set, .type=Type::Write },
-    Command{ .name="GET", .handler=bind_command<&command::get>(), .type=Type::Read },
+constexpr std::array<Command, 12> commands {
+    // -------- key commands --------
+    Command{ .name="EXISTS", .handler=&command::exists, .type=Type::Read },
+    Command{ .name="DEL", .handler=&command::del, .type=Type::Write },
     Command{ .name="EXPIRE", .handler=bind_command<&command::expire>(), .type=Type::Write },
     Command{ .name="TTL", .handler=bind_command<&command::ttl>(), .type=Type::Read },
+    Command{ .name="PERSIST", .handler=bind_command<&command::persist>(), .type=Type::Write },
+    Command{ .name="TYPE", .handler=bind_command<&command::type>(), .type=Type::Read },
+    Command{ .name="RENAME", .handler=bind_command<&command::rename>(), .type=Type::Write },
+    // -------- string commands --------
+    Command{ .name="SET", .handler=&command::set, .type=Type::Write },
+    Command{ .name="GET", .handler=bind_command<&command::get>(), .type=Type::Read },
+    Command{ .name="STRLEN", .handler=bind_command<&command::strlen>(), .type=Type::Read },
+    // ------ sorted set commands ------
     Command{ .name="ZADD", .handler=&command::zadd, .type=Type::Write },
+    Command{ .name="ZSCORE", .handler=bind_command<&command::zscore>(), .type=Type::Read },
 };
 
 // 为了后续的二分查找，我们需要保证 commands 数组是按 name 排序的

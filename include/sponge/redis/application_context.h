@@ -54,7 +54,7 @@ public:
         return io_context_pool_[key_hash % io_context_pool_.size()];
     }
 
-    auto io_context(std::size_t id) noexcept -> boost::asio::io_context&
+    auto io_context(Size id) noexcept -> boost::asio::io_context&
     {
         return io_context_pool_[id];
     }
@@ -62,6 +62,11 @@ public:
     auto resource(Size index) noexcept -> TrackingMemoryResource*
     {
         return resources_[index].get();
+    }
+
+    auto resource(Size index, ByHashT by_hash) noexcept -> TrackingMemoryResource*
+    {
+        return resources_[index % resources_.size()].get();
     }
 
     [[nodiscard]]

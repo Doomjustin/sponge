@@ -1,368 +1,224 @@
-# Redis 命令整理（按官方语义）
+# Redis 推荐命令清单（已移除不推荐命令）
 
-本文档按 Redis 官方常见用法整理命令，重点说明三件事：
-
-- 命令做了什么
-- 常用选项含义
-- 返回值语义（尤其是容易混淆的部分）
+本文档保留“当前推荐使用”的 Redis 命令，并剔除不推荐/过时命令（例如 `HMSET`、`ZRANGEBYSCORE` 等可被新语法替代项）。
 
 说明：
 
-- 以 Redis 7.x 常见行为为准。
-- 不是完整手册，优先覆盖高频和易错命令。
+- 以 Redis 7.x 常见用法为准。
+- 重点说明：命令作用、关键选项、返回语义。
 
-## 1. 键空间与基础
+## 1. Key 与过期
 
 ### EXISTS key [key ...]
-
-作用：检查一个或多个 key 是否存在。
-
-返回：存在的 key 个数（整数）。
-
-要点：多个 key 时按“存在个数”计数，不是布尔值。
+作用：统计存在的 key 数量。
 
 ### DEL key [key ...]
-
-作用：删除一个或多个 key。
-
-返回：实际删除的 key 个数。
-
-要点：不存在的 key 不计数。
+作用：删除 key。
 
 ### UNLINK key [key ...]
-
-作用：异步回收内存的删除（逻辑删除立即生效，内存释放后台做）。
-
-返回：被 unlink 的 key 个数。
-
-适用：大 key 删除，减少主线程阻塞。
+作用：异步删除，适合大 key。
 
 ### TYPE key
-
-作用：返回 key 的数据类型。
-
-返回：`string` / `list` / `set` / `zset` / `hash` / `stream`，不存在时 `none`。
+作用：返回 key 类型（不存在时 `none`）。
 
 ### RENAME key newkey
+作用：把 `key` 重命名为 `newkey`。
 
-作用：重命名 key。
+语义：
 
-行为：如果 `newkey` 已存在，会被覆盖。
+- 源 key 不存在时返回错误
+- 目标 key 已存在时会被覆盖
 
 ### RENAMENX key newkey
+作用：仅当 `newkey` 不存在时执行重命名。
 
-作用：仅当 `newkey` 不存在时重命名。
+返回：
 
-返回：1 成功，0 失败。
+- `1`：重命名成功
+- `0`：目标 key 已存在，未执行重命名
 
-## 2. 过期与生存时间
-
-### EXPIRE key seconds
-### PEXPIRE key milliseconds
-
+### EXPIRE key seconds [NX|XX|GT|LT]
+### PEXPIRE key milliseconds [NX|XX|GT|LT]
 作用：设置过期时间。
 
-返回：1 设置成功，0（key 不存在或条件不满足）。
+选项：
 
-常用选项（Redis 7 常见）：
+- `NX`：仅当当前无过期时间时设置
+- `XX`：仅当当前已有过期时间时设置
+- `GT`：仅允许延长
+- `LT`：仅允许缩短
 
-- `NX`：仅当 key 当前没有过期时间时设置
-- `XX`：仅当 key 当前已有过期时间时设置
-- `GT`：仅当新过期时间比当前更晚时设置
-- `LT`：仅当新过期时间比当前更早时设置
-
-### EXPIREAT key unix_time_seconds
-### PEXPIREAT key unix_time_milliseconds
-
-作用：设置绝对过期时间戳。
+### EXPIRETIME key
+### PEXPIRETIME key
+作用：返回绝对过期时间戳（秒/毫秒）。
 
 ### TTL key
 ### PTTL key
-
-作用：查看剩余生存时间。
-
 返回语义：
 
-- `> 0`：剩余时间（TTL 单位秒，PTTL 单位毫秒）
-- `-1`：key 存在但无过期时间（persistent）
-- `-2`：key 不存在
+- `> 0`：剩余时间
+- `-1`：存在但无过期时间
+- `-2`：不存在
 
 ### PERSIST key
+作用：移除过期时间。
 
-作用：移除过期时间，使 key 永久存在。
+## 2. String
 
-返回：1 成功，0 失败（key 不存在或本来就没有过期）。
-
-## 3. 字符串 String
-
-### SET key value [选项]
-
-作用：写入字符串值。
-
-常用选项：
-
-- `EX seconds`：秒级过期
-- `PX milliseconds`：毫秒级过期
-- `EXAT unix_time_seconds`：秒级绝对时间
-- `PXAT unix_time_milliseconds`：毫秒级绝对时间
-- `NX`：仅当 key 不存在时写入
-- `XX`：仅当 key 已存在时写入
-- `KEEPTTL`：保留原有过期时间
-- `GET`：写入前先返回旧值
-
-返回：通常 `OK`；若配合 `NX`/`XX` 不满足条件则返回空。
+### SET key value [EX seconds|PX milliseconds|EXAT ts|PXAT tsms] [NX|XX] [KEEPTTL] [GET]
+作用：设置字符串值。
 
 ### GET key
-
 作用：读取字符串值。
 
-返回：值或空（nil）。
-
 ### MSET key value [key value ...]
-
-作用：批量设置多个键值。
-
-返回：`OK`。
+作用：批量设置。
 
 ### MGET key [key ...]
-
 作用：批量读取。
 
-返回：数组；不存在项为 nil。
-
-### INCR / DECR / INCRBY / DECRBY
-
-作用：把字符串按整数做原子增减。
-
-前提：值必须是可解析整数。
+### INCR key / DECR key / INCRBY key n / DECRBY key n
+作用：整数原子增减。
 
 ### APPEND key value
+作用：字符串尾部拼接。
 
-作用：在旧值末尾拼接。
+### STRLEN key
+作用：返回字符串长度。
 
-返回：拼接后字符串长度。
-
-## 4. 哈希 Hash
+## 3. Hash
 
 ### HSET key field value [field value ...]
-
 作用：设置一个或多个字段。
 
-返回：新增字段个数（覆盖已有字段不计新增）。
-
 ### HGET key field
-
 作用：读取字段值。
 
-返回：值或 nil。
-
-### HMSET / HMGET
-
-现代用法：一般使用多字段 `HSET` 和 `HMGET`。
+### HMGET key field [field ...]
+作用：批量读取字段。
 
 ### HINCRBY key field increment
-
-作用：对 hash 字段做整数原子增减。
+作用：字段整数原子增减。
 
 ### HDEL key field [field ...]
-
 作用：删除字段。
 
-返回：删除字段个数。
-
 ### HGETALL key
+作用：读取全部字段和值。
 
-作用：获取全部字段和值。
+## 4. List
 
-返回：扁平数组（field1, value1, field2, value2 ...）。
+### LPUSH key element [element ...]
+### RPUSH key element [element ...]
+作用：头/尾插入。
 
-## 5. 列表 List
-
-### LPUSH / RPUSH key element [element ...]
-
-作用：头/尾插入元素。
-
-返回：插入后列表长度。
-
-### LPOP / RPOP key [count]
-
+### LPOP key [count]
+### RPOP key [count]
 作用：头/尾弹出。
 
-返回：单值或数组（指定 count 时）。
-
 ### LRANGE key start stop
-
-作用：按区间取元素（包含 stop）。
-
-要点：支持负索引（-1 表示最后一个）。
+作用：按下标范围读取。
 
 ### LLEN key
+作用：长度。
 
-作用：列表长度。
+### LMPOP numkeys key [key ...] LEFT|RIGHT [COUNT count]
+### BLMPOP timeout numkeys key [key ...] LEFT|RIGHT [COUNT count]
+作用：多 key 弹出（非阻塞/阻塞）。
 
-## 6. 集合 Set
+## 5. Set
 
 ### SADD key member [member ...]
-
 作用：添加成员。
 
-返回：新增成员个数。
-
 ### SREM key member [member ...]
-
 作用：删除成员。
 
-返回：删除个数。
-
 ### SMEMBERS key
-
-作用：返回全部成员。
+作用：获取所有成员。
 
 ### SISMEMBER key member
-
-作用：检查成员是否存在。
-
-返回：1/0。
+作用：成员是否存在。
 
 ### SCARD key
+作用：成员数。
 
-作用：集合基数（成员数）。
+### SINTERCARD numkeys key [key ...] [LIMIT limit]
+作用：求交集基数（不返回具体成员）。
 
-## 7. 有序集合 ZSet
+## 6. ZSet
 
-### ZADD key [选项] score member [score member ...]
+### ZADD key [NX|XX] [CH] [INCR] score member [score member ...]
+作用：写入有序集合。
 
-作用：按 score 写入成员。
-
-常用选项：
-
-- `NX`：仅新增，不更新已有成员
-- `XX`：仅更新，不新增
-- `CH`：返回值统计“变化数量”（新增 + 分数变化）
-- `INCR`：把操作转成增量更新（一次只处理一个 member）
-
-返回：默认返回新增成员个数（受选项影响）。
-
-### ZRANGE key start stop [WITHSCORES]
-
-作用：按排名范围取成员。
-
-`WITHSCORES`：同时返回分数。
-
-### ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
-
-作用：按分数范围取成员。
+### ZRANGE key start stop [REV] [BYSCORE|BYLEX] [LIMIT offset count] [WITHSCORES]
+作用：统一范围查询入口（推荐用它替代旧的 `ZRANGEBYSCORE` 等旧接口）。
 
 ### ZREM key member [member ...]
-
 作用：删除成员。
 
 ### ZSCORE key member
-
-作用：取成员分数。
+作用：读取成员分数。
 
 ### ZCARD key
+作用：成员数量。
 
-作用：有序集合成员数量。
+### ZMPOP numkeys key [key ...] MIN|MAX [COUNT count]
+### BZMPOP timeout numkeys key [key ...] MIN|MAX [COUNT count]
+作用：多 key 弹出（非阻塞/阻塞）。
 
-## 8. 事务与乐观锁
+## 7. Function（Redis 7 推荐替代 EVAL 体系）
 
-### MULTI
+### FCALL function numkeys [key ...] [arg ...]
+### FCALL_RO function numkeys [key ...] [arg ...]
+作用：调用已加载函数（读写/只读）。
 
-作用：开启事务队列。
+### FUNCTION LOAD [REPLACE] code
+### FUNCTION LIST [LIBRARYNAME pattern] [WITHCODE]
+### FUNCTION STATS
+### FUNCTION DELETE library
+### FUNCTION FLUSH [ASYNC|SYNC]
+### FUNCTION DUMP
+### FUNCTION RESTORE payload [FLUSH|APPEND|REPLACE]
+作用：函数库生命周期管理。
 
-### EXEC
-
-作用：执行事务队列中的命令。
-
-返回：每条命令的结果数组。
-
-### DISCARD
-
-作用：放弃事务队列。
-
-### WATCH key [key ...]
-
-作用：监视 key，配合 MULTI/EXEC 做乐观锁。
-
-语义：被监视 key 在 EXEC 前改动则事务失败（返回空结果）。
-
-## 9. 发布订阅 Pub/Sub
+## 8. Pub/Sub（含 7.x 分片能力）
 
 ### PUBLISH channel message
-
-作用：向频道发布消息。
-
-返回：收到消息的订阅者数量。
-
 ### SUBSCRIBE channel [channel ...]
 ### PSUBSCRIBE pattern [pattern ...]
+作用：传统发布订阅。
 
-作用：订阅频道或模式。
+### SPUBLISH shard-channel message
+### SSUBSCRIBE shard-channel [shard-channel ...]
+### SUNSUBSCRIBE [shard-channel ...]
+### PUBSUB SHARDCHANNELS [pattern]
+### PUBSUB SHARDNUMSUB [shard-channel ...]
+作用：分片发布订阅（Redis 7）。
 
-注意：连接进入订阅模式后只接收订阅相关流。
+## 9. 事务与一致性
 
-## 10. 服务端与客户端常见命令
+### MULTI / EXEC / DISCARD / WATCH
+作用：事务队列与乐观锁。
 
-### PING [message]
+### WAIT numreplicas timeout
+作用：等待复制确认。
 
-作用：连通性检查。
+### WAITAOF numlocal numreplicas timeout
+作用：等待 AOF + 复制确认（Redis 7.2）。
 
-返回：`PONG` 或自定义 message。
+## 10. 集群
 
-### AUTH [username] password
+### CLUSTER SHARDS
+作用：推荐的分片拓扑视图（优先于旧 `CLUSTER SLOTS`）。
 
-作用：认证。
+## 11. 已剔除的不推荐命令（示例）
 
-### SELECT index
+以下命令在本清单中不再推荐使用：
 
-作用：切换逻辑库（默认 0）。
+- `HMSET`：用多字段 `HSET` 替代
+- `ZRANGEBYSCORE` / `ZREVRANGEBYSCORE`：用统一 `ZRANGE ... BYSCORE [REV]` 替代
+- `GEORADIUS` / `GEORADIUSBYMEMBER`：用 `GEOSEARCH` 替代
+- `SETNX`：多数场景用 `SET key value NX` 替代
 
-### INFO [section]
-
-作用：查看服务器状态。
-
-### CONFIG GET parameter
-### CONFIG SET parameter value
-
-作用：读取/设置配置（受权限和配置限制）。
-
-## 11. 常见返回类型速查
-
-- 简单字符串：如 `+OK`
-- 错误：如 `-ERR ...`
-- 整数：如 `:1`
-- Bulk String：如 `$3\r\nfoo`
-- Null（RESP2）：`$-1`
-- 数组：`*N ...`
-
-## 12. 实战选项解释（高频）
-
-### SET 的 NX / XX
-
-- `NX`：只创建，不覆盖
-- `XX`：只覆盖，不创建
-
-典型用途：
-
-- `SET lock_id token NX PX 30000`：分布式锁（基础形态）
-
-### EXPIRE 的 NX / XX / GT / LT
-
-- `NX`：只给“无 TTL”键设置 TTL
-- `XX`：只更新“已有 TTL”键
-- `GT`：只允许延长 TTL
-- `LT`：只允许缩短 TTL
-
-### ZADD 的 NX / XX / CH / INCR
-
-- `NX`/`XX`：控制新增或仅更新
-- `CH`：统计“变化”而不只是“新增”
-- `INCR`：将 score 当增量
-
-## 13. 兼容性与实践建议
-
-- TTL/PTTL 的 `-2/-1/>=0` 语义建议严格保持，客户端普遍依赖。
-- 读写混合高并发下，优先保证“检查与修改在同一临界区”，避免竞态。
-- 对大 key 删除优先考虑 `UNLINK`，避免阻塞。
-- 业务文档里建议写清楚命令支持范围（实现子集）和未实现项。
+说明：被剔除不代表 Redis 立刻不可用，而是语义上已有更清晰、更统一的新写法。

@@ -13,6 +13,10 @@
 
 namespace spg::redis {
 
+struct UnlockT {};
+
+inline constexpr UnlockT unlock{};
+
 template<typename Value>
 class DashTable {
 public:
@@ -28,15 +32,10 @@ public:
             segment = Segment{ resource };
     }
 
-    template<typename Func>
-    auto access(std::string_view key, Func&& func) -> decltype(auto)
+    auto mutex_of(std::string_view key) -> std::shared_mutex&
     {
         auto segment_index = index_for(key);
-        std::shared_lock<std::shared_mutex> locker{ locks_[segment_index] };
-
-        auto& segment = datas_[segment_index];
-        auto it = segment.find(key);
-        return func(segment, it);
+        return locks_[segment_index];
     }
 
     template<typename Func>
@@ -50,6 +49,13 @@ public:
         return func(segment, it);
     }
 
+    auto get(std::string_view key, UnlockT unlock) -> Value*
+    {
+        auto& segment = datas_[index_for(key)];
+        auto it = segment.find(key);
+        return (it != segment.end()) ? &it->second : nullptr;
+    }
+
     auto get(std::string_view key) -> Value*
     {
         auto segment_index = index_for(key);
@@ -59,12 +65,22 @@ public:
         return (it != segment.end()) ? &it->second : nullptr;
     }
 
+    void set(std::string_view key, Value value, UnlockT unlock)
+    {
+        datas_[index_for(key)].insert_or_assign(Key{ key, resource_ }, std::move(value));
+    }
+
     void set(std::string_view key, Value value)
     {
         auto segment_index = index_for(key);
         std::unique_lock<std::shared_mutex> locker{ locks_[segment_index] };
         auto& segment = datas_[segment_index];
         segment.insert_or_assign(Key{ key, resource_ }, std::move(value));
+    }
+
+    auto erase(std::string_view key, UnlockT unlock) -> bool
+    {
+        return datas_[index_for(key)].erase(Key{ key, resource_ }) > 0;
     }
 
     auto erase(std::string_view key) -> bool

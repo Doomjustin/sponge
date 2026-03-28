@@ -4,6 +4,8 @@
 #include <utility>
 #include <variant>
 
+#include <fmt/format.h>
+
 #include <sponge/utility.h>
 
 namespace spg::redis {
@@ -15,6 +17,26 @@ auto SortedSet::add(Score score, Member member) -> bool {
     return add_to_skiplist(score, member);
 }
 
+auto SortedSet::score(Member member) -> std::optional<Score>
+{
+    if (std::holds_alternative<ListPack>(backend_)) {
+        auto& listpack = std::get<ListPack>(backend_);
+        for (auto it = listpack.begin(); it != listpack.end(); ++it) {
+            if (extract(it, as_member) == member)
+                return extract(++it, as_score);
+        }
+        
+        return {};
+    }
+
+    auto& node = std::get<Node>(backend_);
+    auto it = node.dict.find(String{ member, resource_ });
+    if (it != node.dict.end()) {
+        return it->second;
+    }
+    return {};
+}
+
 auto SortedSet::add_to_listpack(Score score, Member member) -> bool 
 {
     auto& listpack = std::get<ListPack>(backend_);
@@ -23,6 +45,9 @@ auto SortedSet::add_to_listpack(Score score, Member member) -> bool
         upgrade();
         return add_to_skiplist(score, member);
     }
+
+    listpack.push_back(member);
+    listpack.push_back(fmt::format("{}", score));
 
     return true;
 }

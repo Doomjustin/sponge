@@ -19,8 +19,7 @@ struct CommandContext {
 
     auto io_context(std::string_view key) -> boost::asio::io_context&
     {
-        auto hash = hash_fnv_1a(key);
-        return application_context.io_context(hash, by_hash);
+        return application_context.io_context(hash_fnv_1a(key), by_hash);
     }
 
     auto shard(std::size_t hash) -> DBShard&
@@ -30,8 +29,7 @@ struct CommandContext {
 
     auto shard(std::string_view key) -> DBShard&
     {
-        auto hash = hash_fnv_1a(key);
-        return application_context.shard(hash, by_hash);
+        return application_context.shard(hash_fnv_1a(key), by_hash);
     }
 
     auto resource(std::size_t hash) -> DBShard::MemoryResource*
@@ -41,8 +39,13 @@ struct CommandContext {
 
     auto resource(std::string_view key) -> DBShard::MemoryResource*
     {
+        return application_context.resource(hash_fnv_1a(key), by_hash);
+    }
+
+    auto index(std::string_view key) -> std::size_t
+    {
         auto hash = hash_fnv_1a(key);
-        return application_context.resource(hash);
+        return hash % application_context.size();
     }
 
 private:

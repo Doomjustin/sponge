@@ -88,21 +88,20 @@ public:
             return std::get_if<T>(&it_->second.value);
         }
 
-        template<typename T, typename... Args>
-        auto update(std::type_identity<T>, Args&&... args) -> bool
-        {
-            if (!exists())
-                return false;
-
-            it_->second.value = T{ std::forward<Args>(args)... };
-            return std::get_if<T>(&it_->second.value) != nullptr;
-        }
-
         auto expire(int64_t ms) -> bool
         {
             if (!exists()) return false;
 
             it_->second.expire_at = TTLManager::expire_at(ms);
+            return true;
+        }
+
+        auto erase() -> bool
+        {
+            if (!exists()) return false;
+
+            segment_.erase(it_);
+            it_ = segment_.end();
             return true;
         }
 
@@ -131,6 +130,22 @@ public:
             return TTLManager::ttl(expire_at);
         }
 
+        auto rename(std::string_view new_key) -> bool
+        {
+            if (!exists()) return false;
+
+            if (new_key == key_)
+                return true;
+
+            auto entry = std::move(it_->second);
+            segment_.erase(it_);
+            it_ = segment_.end();
+
+            auto [iter, _] = segment_.insert_or_assign(Key{ new_key, resource_ }, std::move(entry));
+            it_ = iter;
+            return true;
+        }
+
     private:
         DashTable<Entry>::Segment& segment_;
         DashTable<Entry>::Segment::iterator it_;
@@ -140,25 +155,11 @@ public:
 
     explicit DBShard(MemoryResource* resource);
 
-    template<typename Func>
-    auto access(std::string_view key, Func&& func) -> decltype(auto)
-    {
-        // 只读路径，内部是shared_lock，允许并发访问
-        return tables_.access(key, [&] (auto& segment, auto it) {
-            if (it != segment.end() && ttl_manager_.is_expired(it->second.expire_at)) {
-                segment.erase(it);
-                it = segment.end();
-            }
-
-            EntryHandler handler{ segment, it, key, resource_ };
-            return func(handler);
-        });
-    }
-
+    // 修改路径，内部是unique_lock，保证独占访问
+    // 由于每次访问都需要判断是否过期，所以即使是只读操作也要使用modify接口，保证过期逻辑的正确性
     template<typename Func>
     auto modify(std::string_view key, Func&& func) -> decltype(auto)
     {
-        // 修改路径，内部是unique_lock，保证独占访问
         return tables_.modify(key, [&] (auto& segment, auto it) {
             if (it != segment.end() && ttl_manager_.is_expired(it->second.expire_at)) {
                 segment.erase(it);
@@ -180,6 +181,26 @@ public:
     constexpr auto empty() const noexcept -> bool
     {
         return tables_.empty();
+    }
+
+    auto mutex_of(std::string_view key) -> std::shared_mutex&
+    {
+        return tables_.mutex_of(key);
+    }
+
+    auto get_entry(std::string_view key) -> Entry*
+    {
+        return tables_.get(key, unlock);
+    }
+
+    void set(std::string_view key, Entry value)
+    {
+        tables_.set(key, std::move(value), unlock);
+    }
+
+    auto erase(std::string_view key) -> bool
+    {
+        return tables_.erase(key, unlock);
     }
 
 private:
