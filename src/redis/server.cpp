@@ -14,7 +14,7 @@ namespace asio = boost::asio;
 namespace spg::redis {
 
 Server::Server(std::string_view address, std::string_view port, size_t threads)
-  : io_contexts_{ threads },
+  : application_context_{ threads },
     address_{ address },
     port_{ port }
 {
@@ -25,11 +25,11 @@ void Server::run()
 {
     using reuse_port = asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT>;
 
-    asio::ip::tcp::resolver resolver{ io_contexts_[0] };
+    asio::ip::tcp::resolver resolver{ application_context_.io_context(0) };
     asio::ip::tcp::endpoint endpoint = *resolver.resolve(address_, port_).begin();
 
-    for (size_t i = 0; i < io_contexts_.size(); ++i) {
-        auto& context = io_contexts_[i];
+    for (size_t i = 0; i < application_context_.size(); ++i) {
+        auto& context = application_context_.io_context(i);
         asio::ip::tcp::acceptor acceptor{ context };
         acceptor.open(endpoint.protocol());
         acceptor.set_option(asio::socket_base::reuse_address(true));
@@ -38,16 +38,18 @@ void Server::run()
         acceptor.listen();
         acceptors_.push_back(std::move(acceptor));
 
-        asio::co_spawn(context, listener(acceptors_.back()), asio::detached);
+        asio::co_spawn(context, 
+                       listener(acceptors_.back(), application_context_.thread_context(i)), 
+                       asio::detached);
     }
 
-    auto& first_context = io_contexts_[0];
+    auto& first_context = application_context_.io_context(0);
     asio::co_spawn(first_context, graceful_shutdown(first_context), asio::detached);
 
-    io_contexts_.run();
+    application_context_.run();
 }
 
-auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor) -> boost::asio::awaitable<void>
+auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, ThreadContext context) -> boost::asio::awaitable<void>
 {
     auto address = acceptor.local_endpoint().address().to_string();
     auto port = acceptor.local_endpoint().port();
@@ -56,7 +58,7 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor) -> boost::asio::
     try {
         while (true) {
             auto socket = co_await acceptor.async_accept(asio::use_awaitable);
-            asio::co_spawn(acceptor.get_executor(), do_session(std::move(socket)), asio::detached);
+            asio::co_spawn(acceptor.get_executor(), do_session(std::move(socket), context), asio::detached);
         }
     } catch (const boost::system::system_error& e) {
         if (!stopping_)
@@ -66,9 +68,9 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor) -> boost::asio::
     }
 }
 
-auto Server::do_session(asio::ip::tcp::socket socket) -> boost::asio::awaitable<void>
+auto Server::do_session(asio::ip::tcp::socket socket, ThreadContext& context) -> boost::asio::awaitable<void>
 {
-    Session session{ std::move(socket) };
+    Session session{ std::move(socket), context };
     co_await session.run();
 }
 
@@ -91,7 +93,7 @@ auto Server::graceful_shutdown(boost::asio::io_context& context) -> boost::asio:
     stopping_ = true;
     std::ranges::for_each(acceptors_, stop_acceptors);
 
-    io_contexts_.stop();
+    application_context_.stop();
 }
 
 } // namespace spg::redis

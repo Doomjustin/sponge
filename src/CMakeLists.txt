@@ -11,6 +11,7 @@ spg_add_module(redis redis
         Microsoft.GSL::GSL
         Boost::unordered
         Boost::asio
+        Boost::beast
 )
 
 spg_add_module(leveldb leveldb

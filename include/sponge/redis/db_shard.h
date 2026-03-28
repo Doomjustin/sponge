@@ -20,19 +20,20 @@ enum class ValueType : uint8_t {
     HashTable, /* List, SortedSet, ZSet */ 
 };
 
-struct UseStringT {};
-struct UseIntegralT {};
-struct UseListT {};
+struct AsStringT {};
+struct AsIntegralT {};
+struct AsListT {};
 
-static constexpr UseStringT use_string{};
-static constexpr UseIntegralT use_integral{};
-static constexpr UseListT use_list{};
+inline constexpr AsStringT as_string{};
+inline constexpr AsIntegralT as_integral{};
+inline constexpr AsListT as_list{};
 
 // 支持的类型
 // string
 // int
 // hash
 // list
+// 需要先对key进行hash，定位到具体的shard，再在shard内部进行操作
 class DBShard {
 public:
     using String = std::pmr::string;
@@ -42,15 +43,15 @@ public:
     // using List = std::pmr::list<String>;
     using Key = String;
     using Value = std::variant<String, Integral>;
-    using Size = std::size_t;
+    using Size = size_t;
     using MemoryResource = std::pmr::memory_resource;
     using MilliSeconds = TTLManager::Milliseconds;
 
     explicit DBShard(MemoryResource* resource);
 
-    auto get(std::string_view key, UseStringT t) -> std::optional<std::string_view>;
+    auto get(std::string_view key, AsStringT t) -> std::optional<std::string_view>;
 
-    auto get(std::string_view key, UseIntegralT t) -> std::optional<Integral>;
+    auto get(std::string_view key, AsIntegralT t) -> std::optional<Integral>;
 
     void set(std::string_view key, std::string_view value);
 
@@ -58,9 +59,9 @@ public:
 
     auto erase(std::string_view key) -> bool;
 
-    auto holds(std::string_view key, UseStringT t) -> bool;
+    auto holds(std::string_view key, AsStringT t) -> bool;
 
-    auto holds(std::string_view key, UseIntegralT t) -> bool;
+    auto holds(std::string_view key, AsIntegralT t) -> bool;
 
     auto exists(std::string_view key) -> bool;
 

@@ -6,6 +6,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <boost/asio.hpp>
 #include <fmt/format.h>
 
 namespace spg::redis {
@@ -139,6 +140,23 @@ public:
     auto str() const -> std::string
     {
         return std::string{ buffer_.data(), buffer_.size() };
+    }
+
+    [[nodiscard]]
+    auto view_buffer() const -> boost::asio::const_buffer
+    {
+        return boost::asio::const_buffer{ buffer_.data(), buffer_.size() };
+    }
+
+    [[nodiscard]]
+    constexpr auto empty() const noexcept -> bool
+    {
+        return buffer_.size() == 0;
+    }
+
+    void clear()
+    {
+        buffer_.clear();
     }
 
 private:

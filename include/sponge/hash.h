@@ -7,11 +7,14 @@
 
 namespace spg {
 
+// 别的地方会用到这个tag，暂时先放在这里
+struct ByHashT {};
 struct UseStdTag {};
 struct UseFNV1aTag {};
 
-static constexpr UseStdTag use_std{};
-static constexpr UseFNV1aTag use_fnv_1a{};
+inline constexpr UseStdTag use_std{};
+inline constexpr UseFNV1aTag use_fnv_1a{};
+inline constexpr ByHashT by_hash{};
 
 [[nodiscard]]
 auto hash(std::string_view key, UseStdTag tag) -> size_t;

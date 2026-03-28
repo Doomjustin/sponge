@@ -1,4 +1,4 @@
-#include "db_shard.h"
+#include <sponge/redis/db_shard.h>
 
 namespace spg::redis {
 
@@ -8,7 +8,7 @@ DBShard::DBShard(MemoryResource* resource)
 {
 }
 
-auto DBShard::get(std::string_view key, UseStringT t) -> std::optional<std::string_view>
+auto DBShard::get(std::string_view key, AsStringT t) -> std::optional<std::string_view>
 {
     if (auto* entry = tables_.get(key)) {
         if (TTLManager::is_expired(entry->expire_at)) {
@@ -23,7 +23,7 @@ auto DBShard::get(std::string_view key, UseStringT t) -> std::optional<std::stri
     return {};
 }
 
-auto DBShard::get(std::string_view key, UseIntegralT t) -> std::optional<Integral>
+auto DBShard::get(std::string_view key, AsIntegralT t) -> std::optional<Integral>
 {
     if (auto* entry = tables_.get(key)) {
         if (TTLManager::is_expired(entry->expire_at)) {
@@ -64,7 +64,7 @@ auto DBShard::erase(std::string_view key) -> bool
     return tables_.erase(key);
 }
 
-auto DBShard::holds(std::string_view key, UseStringT t) -> bool
+auto DBShard::holds(std::string_view key, AsStringT t) -> bool
 {
     if (auto* entry = tables_.get(key)) {
         if (TTLManager::is_expired(entry->expire_at)) {
@@ -78,7 +78,7 @@ auto DBShard::holds(std::string_view key, UseStringT t) -> bool
     return false;
 }
 
-auto DBShard::holds(std::string_view key, UseIntegralT t) -> bool
+auto DBShard::holds(std::string_view key, AsIntegralT t) -> bool
 {
     if (auto* entry = tables_.get(key)) {
         if (TTLManager::is_expired(entry->expire_at)) {

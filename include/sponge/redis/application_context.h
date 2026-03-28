@@ -5,6 +5,8 @@
 #include <memory_resource>
 #include <vector>
 
+#include <boost/asio/io_context.hpp>
+
 #include <sponge/io_contexts.h>
 #include <sponge/tracking_resource.h>
 
@@ -12,9 +14,12 @@
 
 namespace spg::redis {
 
-struct ByHashT {};
+struct ThreadContext {
+    boost::asio::io_context& io_context;
+    TrackingMemoryResource& resource;
+    std::span<DBShard> shards;
+};
 
-static constexpr ByHashT by_hash{};
 
 class ApplicationContext {
 public:
@@ -30,15 +35,32 @@ public:
 
     ~ApplicationContext() = default;
 
+    void run()
+    {
+        io_context_pool.run();
+    }
+
+    void stop()
+    {
+        io_context_pool.stop();
+    }
+
+    auto thread_context(Size index) noexcept -> ThreadContext
+    {
+        return ThreadContext{ .io_context=io_context_pool[index], 
+                              .resource=*resources[index], 
+                              .shards=std::span{ shards.data(), shards.size() } };
+    }
+
     [[nodiscard]]
     constexpr auto data_size() const noexcept -> Size;
 
-    auto db(Size key_hash, ByHashT by_hash) noexcept -> DBShard&
+    auto shard(Size key_hash, ByHashT by_hash) noexcept -> DBShard&
     {
         return shards[key_hash % shards.size()];
     }
 
-    auto db(Size index) noexcept -> DBShard& { return shards[index]; }
+    auto shard(Size index) noexcept -> DBShard& { return shards[index]; }
 
     auto io_context(Size key_hash, ByHashT by_hash) noexcept -> boost::asio::io_context&
     {
@@ -56,12 +78,14 @@ public:
         return shards.size();
     }
 
+    // 非线程安全，调用者必须保证线程安全
     [[nodiscard]]
     auto used_memory(Size index) const noexcept -> std::size_t
     {
         return resources[index]->used_memory();
     }
 
+    // 非线程安全，调用者必须保证线程安全
     [[nodiscard]]
     constexpr auto total_used_memory() const noexcept -> std::size_t;
 

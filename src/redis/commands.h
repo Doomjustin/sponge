@@ -4,20 +4,14 @@
 #include <span>
 #include <string_view>
 
-#include "db_shard.h"
-#include "reply.h"
+#include "command_context.h"
 
 namespace spg::redis {
-
-struct Context {
-    DBShard& db_shard;
-    Reply& reply;
-};
 
 struct commands {
     commands() = delete;
 
-    static void dispatch(Context& context, std::span<const std::string_view> cmd);
+    static void dispatch(CommandContext& context, std::span<const std::string_view> cmd);
 };
 
 } // namespace spg::redis

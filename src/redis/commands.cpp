@@ -11,6 +11,8 @@
 
 #include <sponge/utility.h>
 
+#include "command.h"
+
 namespace spg::redis {
 namespace {
 
@@ -23,7 +25,7 @@ struct FunctionTraits<Return(*)(Context&, Args...)> {
     static constexpr size_t arity = sizeof...(Args);
 };
 
-using CommandHandler = void(*)(Context&, std::span<const std::string_view>);
+using CommandHandler = void(*)(CommandContext&, std::span<const std::string_view>);
 
 template<typename T>
 auto parse_arg(std::string_view sv) -> T
@@ -48,7 +50,7 @@ constexpr auto bind_command() -> CommandHandler
     using Traits = FunctionTraits<decltype(Func)>;
     constexpr size_t expected_arity = Traits::arity;
 
-    return +[](Context& context, std::span<const std::string_view> args) -> void
+    return +[](CommandContext& context, std::span<const std::string_view> args) -> void
     {
         if (args.size() != expected_arity) {
             context.reply.append(Error{ "ERR wrong number of arguments" });
@@ -69,30 +71,14 @@ constexpr auto bind_command() -> CommandHandler
     };
 }
 
-struct common {
-    common() = delete;
-
-    static void set(Context& context, std::string_view key, std::string_view value)
-    {
-        // TODO: 将 key-value 存入 context.db_shard
-        context.reply.append(ok);
-    }
-
-    static void get(Context& context, std::string_view key)
-    {
-        // TODO: 从 context.db_shard 获取值并返回
-        context.reply.append(ok);
-    }
-};
-
 struct Command {
     std::string_view name;
     CommandHandler handler;
 };
 
 constexpr std::array<Command, 2> commands {{
-    { .name="SET", .handler=bind_command<&common::set>() },
-    { .name="GET", .handler=bind_command<&common::get>() },
+    { .name="SET", .handler=bind_command<&command::set>() },
+    { .name="GET", .handler=bind_command<&command::get>() },
 }};
 
 // 为了后续的二分查找，我们需要保证 commands 数组是按 name 排序的
@@ -108,7 +94,7 @@ constexpr auto sorted_commands = build_sorted_commands();
 } // namespace
 
 
-void commands::dispatch(Context& context, std::span<const std::string_view> cmd)
+void commands::dispatch(CommandContext& context, std::span<const std::string_view> cmd)
 {
     auto name = to_uppercase(cmd[0]);
     auto it = std::ranges::lower_bound(sorted_commands, 

@@ -12,7 +12,7 @@ TEST_CASE("dispatch handles known command case-insensitively", "[commands]")
 {
     DBShard shard{ std::pmr::new_delete_resource() };
     Reply reply;
-    Context context{ shard, reply };
+    CommandContext context{ std::span<DBShard>{ &shard, 1 }, reply };
 
     std::array<std::string_view, 3> cmd{ "set", "mykey", "myvalue" };
     commands::dispatch(context, cmd);
@@ -24,7 +24,7 @@ TEST_CASE("dispatch returns error for unknown command", "[commands]")
 {
     DBShard shard{ std::pmr::new_delete_resource() };
     Reply reply;
-    Context context{ shard, reply };
+    CommandContext context{ std::span<DBShard>{ &shard, 1 }, reply };
 
     std::array<std::string_view, 1> cmd{ "no_such_cmd" };
     commands::dispatch(context, cmd);
@@ -36,7 +36,7 @@ TEST_CASE("dispatch validates argument count for GET", "[commands]")
 {
     DBShard shard{ std::pmr::new_delete_resource() };
     Reply reply;
-    Context context{ shard, reply };
+    CommandContext context{ .shards=std::span<DBShard>{ &shard, 1 }, .reply=reply };
 
     std::array<std::string_view, 1> cmd{ "GET" };
     commands::dispatch(context, cmd);
@@ -48,7 +48,7 @@ TEST_CASE("dispatch validates argument count for SET", "[commands]")
 {
     DBShard shard{ std::pmr::new_delete_resource() };
     Reply reply;
-    Context context{ shard, reply };
+    CommandContext context{ .shards=std::span<DBShard>{ &shard, 1 }, .reply=reply };
 
     std::array<std::string_view, 2> cmd{ "SET", "only_key" };
     commands::dispatch(context, cmd);
@@ -60,7 +60,7 @@ TEST_CASE("dispatch appends output on repeated calls", "[commands]")
 {
     DBShard shard{ std::pmr::new_delete_resource() };
     Reply reply;
-    Context context{ shard, reply };
+    CommandContext context{ .shards=std::span<DBShard>{ &shard, 1 }, .reply=reply };
 
     std::array<std::string_view, 3> set_cmd{ "SET", "k", "v" };
     std::array<std::string_view, 2> bad_set_cmd{ "SET", "k" };
