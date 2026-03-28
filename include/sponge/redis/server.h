@@ -20,6 +20,8 @@ public:
     void run();
 
 private:
+    static constexpr std::string_view AOF_FILENAME = "/tmp/sponge/redis.aof";
+
     ApplicationContext application_context_;
     std::string address_;
     std::string port_;
@@ -31,6 +33,8 @@ private:
     auto do_session(boost::asio::ip::tcp::socket socket, size_t index) -> boost::asio::awaitable<void>;
 
     auto graceful_shutdown(boost::asio::io_context& context) -> boost::asio::awaitable<void>;
+
+    void load_aof(std::string_view filepath);
 };
 
 } // namespace spg::redis

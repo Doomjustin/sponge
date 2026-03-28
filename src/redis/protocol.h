@@ -7,7 +7,12 @@
 namespace spg::redis {
 
 struct resp {
-    using Command = std::pmr::vector<std::string_view>;
+    struct Command {
+        using Arguments = std::pmr::vector<std::string_view>;
+        Arguments arguments;
+        std::string_view raw;
+    };
+    
     using Commands = std::pmr::vector<Command>;
 
     struct ParseResult {

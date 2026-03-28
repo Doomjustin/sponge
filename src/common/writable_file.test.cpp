@@ -1,4 +1,4 @@
-#include "writable_file.h"
+#include <sponge/writable_file.h>
 
 #include <catch2/catch_test_macros.hpp>
 

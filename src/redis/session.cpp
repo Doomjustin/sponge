@@ -24,7 +24,13 @@ Session::Session(Socket socket, ApplicationContext& context, Index index)
 auto Session::run() -> boost::asio::awaitable<void>
 {
     beast::flat_buffer buffer{ MAX_QUERY_SIZE };
-    CommandContext context{ .application_context = context_, .reply = reply_ };
+    CommandContext context{ 
+        .application_context = context_, 
+        .reply = reply_,
+        .is_aof_loading = false
+    };
+    
+    context.aof_buffer.reserve(BUFFER_SIZE);
 
     try {
         while (true) {
@@ -46,6 +52,13 @@ auto Session::run() -> boost::asio::awaitable<void>
                 buffer.consume(consumed_bytes);
             }
 
+            // 批量写入 AOF，减少磁盘 I/O 次数
+            if (!context.aof_buffer.empty()) {
+                context_.aof().append(std::move(context.aof_buffer));
+                context.aof_buffer = std::string{};
+                context.aof_buffer.reserve(BUFFER_SIZE);
+            }
+
             if (!reply_.empty()) {
                 co_await asio::async_write(socket_, reply_.view_buffer(), asio::use_awaitable);
                 reply_.clear();
@@ -54,10 +67,18 @@ auto Session::run() -> boost::asio::awaitable<void>
     }
     catch (const boost::system::system_error& e) {
         if (e.code() != asio::error::eof && e.code() != asio::error::connection_reset)
-            std::print("Session error: {}\n", e.what());
+            SPDLOG_ERROR("Session error: {}", e.what());
+
+        // 在连接关闭时，确保将未写入 AOF 的命令写入磁盘，减少数据丢失的可能性
+        if (!context.aof_buffer.empty())
+            context_.aof().append(std::move(context.aof_buffer));
     }
     catch (const std::exception& e) {
-        std::print("Session exception: {}\n", e.what());
+        SPDLOG_ERROR("Session exception: {}", e.what());
+
+        // 在连接关闭时，确保将未写入 AOF 的命令写入磁盘，减少数据丢失的可能性
+        if (!context.aof_buffer.empty())
+            context_.aof().append(std::move(context.aof_buffer));
     }
 }
 

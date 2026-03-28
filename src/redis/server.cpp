@@ -1,12 +1,19 @@
 #include <sponge/redis/server.h>
 
 #include <algorithm>
+#include <array>
+#include <fstream>
 #include <print>
 
 #include <sys/socket.h>
 
 #include <boost/asio.hpp>
+#include <spdlog/spdlog.h>
 
+#include "command_context.h"
+#include "commands.h"
+#include "protocol.h"
+#include "reply.h"
 #include "session.h"
 
 namespace asio = boost::asio;
@@ -14,11 +21,12 @@ namespace asio = boost::asio;
 namespace spg::redis {
 
 Server::Server(std::string_view address, std::string_view port, size_t threads)
-  : application_context_{ threads },
+  : application_context_{ threads, AOF_FILENAME },
     address_{ address },
     port_{ port }
 {
     acceptors_.reserve(threads);
+    load_aof(AOF_FILENAME);
 }
 
 void Server::run() 
@@ -62,9 +70,9 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) ->
         }
     } catch (const boost::system::system_error& e) {
         if (!stopping_)
-            std::print("error occurred: {}\n", e.what());
+           SPDLOG_ERROR("error occurred: {}", e.what());
 
-        std::print("Listener stopped. Ready to shutdown\n");
+        SPDLOG_INFO("Listener stopped. Ready to shutdown");
     }
 }
 
@@ -78,7 +86,8 @@ auto Server::graceful_shutdown(boost::asio::io_context& context) -> boost::asio:
 {
     asio::signal_set signals{ context, SIGINT, SIGTERM };
     co_await signals.async_wait(asio::use_awaitable);
-    std::print("Shutting down...\n");
+    
+    SPDLOG_INFO("Shutting down...\n");
 
     boost::system::error_code ec;
 
@@ -94,6 +103,50 @@ auto Server::graceful_shutdown(boost::asio::io_context& context) -> boost::asio:
     std::ranges::for_each(acceptors_, stop_acceptors);
 
     application_context_.stop();
+}
+
+void Server::load_aof(std::string_view filepath)
+{
+    std::ifstream file{ filepath.data(), std::ios::binary };
+    if (!file) {
+        SPDLOG_INFO("No AOF file found at '{}', starting with an empty dataset.", filepath);
+        return;
+    }
+
+    SPDLOG_INFO("Loading AOF file from '{}'", filepath);
+
+    Reply reply;
+    CommandContext fake_context {
+        .application_context = application_context_,
+        .reply = reply,
+        .is_aof_loading = true
+    };
+
+    std::string buffer{};
+    buffer.reserve(1024 * 1024 * 4);
+    std::array<char, 65536> chunk;
+
+    size_t count = 0;
+    while (file.read(chunk.data(), chunk.size()) || file.gcount() > 0) {
+        buffer.append(chunk.data(), file.gcount());
+
+        while (!buffer.empty()) {
+            auto [commands, consumed_bytes] = resp::parse_request(buffer, application_context_.resource(0));
+
+            if (commands.empty())
+                break; // 半包，继续读取数据
+
+            for (const auto& cmd : commands) {
+                commands::dispatch(fake_context, cmd);
+                fake_context.reply.clear(); // 加载 AOF 时不需要回复客户端
+                ++count;
+            }
+
+            buffer.erase(0, consumed_bytes);
+        }
+    }
+
+    SPDLOG_INFO("AOF Loading complete! Successfully replayed {} commands.", count);
 }
 
 } // namespace spg::redis

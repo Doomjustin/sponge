@@ -30,6 +30,9 @@ find_package(Boost REQUIRED
         unordered
 )
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBURING REQUIRED IMPORTED_TARGET liburing)
+
 if (${PROJECT_NAME}_BUILD_TESTS)
    find_package(Catch2 CONFIG REQUIRED)
 endif()

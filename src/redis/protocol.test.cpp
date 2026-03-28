@@ -15,10 +15,11 @@ TEST_CASE("parse_resp_batch parses single command", "[spg_redis_protocol][parse]
     auto result{ resp::parse_request(buf, resource) };
 
     REQUIRE(result.commands.size() == 1);
-    REQUIRE(result.commands[0].size() == 3);
-    REQUIRE(result.commands[0][0] == "SET");
-    REQUIRE(result.commands[0][1] == "mykey");
-    REQUIRE(result.commands[0][2] == "myvalue");
+    REQUIRE(result.commands[0].arguments.size() == 3);
+    REQUIRE(result.commands[0].arguments[0] == "SET");
+    REQUIRE(result.commands[0].arguments[1] == "mykey");
+    REQUIRE(result.commands[0].arguments[2] == "myvalue");
+    REQUIRE(result.commands[0].raw == "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n");
     REQUIRE(result.consumed_bytes == buf.size());
 }
 
@@ -31,8 +32,10 @@ TEST_CASE("parse_resp_batch parses multiple commands in one buffer", "[spg_redis
     auto result{ resp::parse_request(buf, resource) };
 
     REQUIRE(result.commands.size() == 2);
-    REQUIRE(result.commands[0][0] == "SET");
-    REQUIRE(result.commands[1][0] == "GET");
+    REQUIRE(result.commands[0].arguments[0] == "SET");
+    REQUIRE(result.commands[1].arguments[0] == "GET");
+    REQUIRE(result.commands[0].raw == "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n");
+    REQUIRE(result.commands[1].raw == "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n");
     REQUIRE(result.consumed_bytes == buf.size());
 }
 

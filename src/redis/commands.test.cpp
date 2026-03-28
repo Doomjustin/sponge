@@ -1,6 +1,7 @@
 #include "commands.h"
 
 #include <array>
+#include <memory_resource>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
@@ -13,15 +14,19 @@ void run_dispatch(ApplicationContext& app,
                   Reply& reply,
                   std::span<const std::string_view> cmd)
 {
+    std::pmr::monotonic_buffer_resource resource;
+    resp::Command request{ .arguments = resp::Command::Arguments{ &resource }, .raw = {} };
+    request.arguments.insert(request.arguments.end(), cmd.begin(), cmd.end());
+
     CommandContext context{ .application_context = app, .reply = reply };
-    commands::dispatch(context, cmd);
+    commands::dispatch(context, request);
 }
 
 } // namespace
 
 TEST_CASE("dispatch handles known command case-insensitively", "[commands]")
 {
-    ApplicationContext app{ 1 };
+    ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
 
     std::array<std::string_view, 3> cmd{ "set", "mykey", "myvalue" };
@@ -32,7 +37,7 @@ TEST_CASE("dispatch handles known command case-insensitively", "[commands]")
 
 TEST_CASE("dispatch returns error for unknown command", "[commands]")
 {
-    ApplicationContext app{ 1 };
+    ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
 
     std::array<std::string_view, 1> cmd{ "no_such_cmd" };
@@ -43,7 +48,7 @@ TEST_CASE("dispatch returns error for unknown command", "[commands]")
 
 TEST_CASE("dispatch validates argument count for GET", "[commands]")
 {
-    ApplicationContext app{ 1 };
+    ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
 
     std::array<std::string_view, 1> cmd{ "GET" };
@@ -54,18 +59,18 @@ TEST_CASE("dispatch validates argument count for GET", "[commands]")
 
 TEST_CASE("dispatch validates argument count for SET", "[commands]")
 {
-    ApplicationContext app{ 1 };
+    ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
 
     std::array<std::string_view, 2> cmd{ "SET", "only_key" };
     run_dispatch(app, reply, cmd);
 
-    REQUIRE(reply.str() == "-ERR wrong number of arguments\r\n");
+    REQUIRE(reply.str() == "-ERR wrong number of arguments for 'SET' command\r\n");
 }
 
 TEST_CASE("dispatch appends output on repeated calls", "[commands]")
 {
-    ApplicationContext app{ 1 };
+    ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
 
     std::array<std::string_view, 3> set_cmd{ "SET", "k", "v" };
@@ -74,5 +79,5 @@ TEST_CASE("dispatch appends output on repeated calls", "[commands]")
     run_dispatch(app, reply, set_cmd);
     run_dispatch(app, reply, bad_set_cmd);
 
-    REQUIRE(reply.str() == "+OK\r\n-ERR wrong number of arguments\r\n");
+    REQUIRE(reply.str() == "+OK\r\n-ERR wrong number of arguments for 'SET' command\r\n");
 }

@@ -11,6 +11,7 @@
 #include <sponge/io_contexts.h>
 #include <sponge/tracking_resource.h>
 
+#include "aof.h"
 #include "db_shard.h"
 
 namespace spg::redis {
@@ -19,7 +20,7 @@ class ApplicationContext {
 public:
     using Size = std::size_t;
 
-    explicit ApplicationContext(Size count);
+    ApplicationContext(Size count, std::string_view aof_filename);
 
     ApplicationContext(const ApplicationContext&) = delete;
     auto operator=(const ApplicationContext&) -> ApplicationContext& = delete;
@@ -75,6 +76,11 @@ public:
         return shards_.size();
     }
 
+    auto aof() noexcept -> AOF&
+    {
+        return aof_;
+    }
+
     // 非线程安全，调用者必须保证线程安全
     [[nodiscard]]
     auto used_memory(Size index) const noexcept -> std::size_t
@@ -93,6 +99,7 @@ private:
     std::vector<std::unique_ptr<Pool>> pools_;
     std::vector<std::unique_ptr<TrackingMemoryResource>> resources_;
     std::vector<std::unique_ptr<DBShard>> shards_;
+    AOF aof_;
 };
 
 } // namespace spg::redis

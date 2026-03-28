@@ -38,6 +38,7 @@ void IOContexts::run()
 void IOContexts::stop()
 {
     std::ranges::for_each(works_, [](auto& work) { work.reset(); });
+    std::ranges::for_each(io_contexts_, [](auto& ctx) -> void { ctx->stop(); });
 }
 
 void IOContexts::force_stop()

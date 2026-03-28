@@ -114,23 +114,32 @@ constexpr auto sorted_commands = build_sorted_commands();
 } // namespace
 
 
-void commands::dispatch(CommandContext& context, std::span<const std::string_view> cmd)
+void commands::dispatch(CommandContext& context, const resp::Command& cmd)
 {
-    if (cmd.empty()) {
+    auto& arguments = cmd.arguments;
+
+    if (arguments.empty()) {
         context.reply.append(Error{ "ERR empty command" });
         return;
     }
 
-    auto name = to_uppercase(cmd[0]);
+    auto name = to_uppercase(arguments[0]);
     auto it = std::ranges::lower_bound(sorted_commands, 
                                                         std::string_view{ name }, 
                                                         std::ranges::less{}, 
                                                         &Command::name);
 
     if (it != sorted_commands.end() && it->name == name) {
-        std::span<const std::string_view> args{ cmd.data() + 1, cmd.size() - 1 };
+        if (it->type == Type::Write && !context.application_context.aof().is_healthy()) {
+            context.reply.append(Error{"MISCONF AOF is configured to save data, but is currently not able to persist on disk. Commands that may modify the data set are disabled."});
+            return;
+        }
+
+        std::span<const std::string_view> args{ arguments.data() + 1, arguments.size() - 1 };
         it->handler(context, args);
-        // TODO: 对于写命令，我们可能需要在这里添加一些额外的逻辑，比如记录日志、触发事件等
+        
+        if (it->type == Type::Write && !context.is_aof_loading)
+            context.append(cmd.raw);
     }
     else {
         context.reply.append(Error{ fmt::format("ERR unknown command '{}'", name) });

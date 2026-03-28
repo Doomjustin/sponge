@@ -11,6 +11,8 @@ namespace spg::redis {
 struct CommandContext {
     ApplicationContext& application_context;
     Reply& reply;
+    std::string aof_buffer;
+    bool is_aof_loading = false; // 标记当前是否处于 AOF 加载阶段，避免在加载时写入 AOF
 
     auto io_context(std::size_t hash) -> boost::asio::io_context&
     {
@@ -46,6 +48,11 @@ struct CommandContext {
     {
         auto hash = hash_fnv_1a(key);
         return hash % application_context.size();
+    }
+
+    void append(std::string_view command)
+    {
+        aof_buffer.append(command);
     }
 
 private:

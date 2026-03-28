@@ -57,9 +57,9 @@ auto parse_bulk_string(const char* begin, const char* const end) -> BulkParseRes
 }
 
 // expected: *3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n
-auto parse_array_command(const char* begin, const char* const end, std::pmr::memory_resource* resource) -> resp::Command
+auto parse_array_command(const char* begin, const char* const end, std::pmr::memory_resource* resource) -> resp::Command::Arguments
 {
-    resp::Command command{ resource };
+    resp::Command::Arguments args{ resource };
 
     assert(*begin == '*');
 
@@ -80,11 +80,11 @@ auto parse_array_command(const char* begin, const char* const end, std::pmr::mem
         if (bulk.partial)
             return {};
 
-        command.emplace_back(bulk.value);
+        args.emplace_back(bulk.value);
         begin = bulk.next;
     }
 
-    return command;
+    return args;
 }
 
 auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* resource) -> ParseResult
@@ -94,6 +94,8 @@ auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* res
     const auto* const end = buffer.data() + buffer.size();
 
     while (ptr < end) {
+        const auto* raw_start = ptr;
+
         if (*ptr == '*') {
             auto command = parse_array_command(ptr, end, resource);
 
@@ -103,7 +105,8 @@ auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* res
             auto last_command = command.back();
             ptr = last_command.data() + last_command.size() + 2; // 跳过最后一个参数的CRLF
 
-            result.commands.push_back(std::move(command));
+            std::string_view raw{ raw_start, static_cast<std::size_t>(ptr - raw_start) };
+            result.commands.emplace_back(std::move(command), raw);
             result.consumed_bytes = static_cast<std::size_t>(ptr - buffer.data());
         }
         else {

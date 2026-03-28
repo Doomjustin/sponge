@@ -1,19 +1,17 @@
 #ifndef SPONGE_REDIS_COMMANDS_H
 #define SPONGE_REDIS_COMMANDS_H
 
-#include <span>
-#include <string_view>
-
 #include <boost/asio.hpp>
 
 #include "command_context.h"
+#include "protocol.h"
 
 namespace spg::redis {
 
 struct commands {
     commands() = delete;
 
-    static void dispatch(CommandContext& context, std::span<const std::string_view> cmd);
+    static void dispatch(CommandContext& context, const resp::Command& cmd);
 };
 
 } // namespace spg::redis

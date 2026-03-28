@@ -1,9 +1,9 @@
-#include "writable_file.h"
+#include <sponge/writable_file.h>
 
-namespace spg::leveldb {
+namespace spg {
     
 StdWritableFile::StdWritableFile(std::string_view filename)
-    : stream_{ filename.data(), std::ios::app | std::ios::binary | std::ios::out }
+  : stream_{ filename.data(), std::ios::app | std::ios::binary | std::ios::out }
 {}
 
 StdWritableFile::~StdWritableFile()
@@ -14,31 +14,31 @@ StdWritableFile::~StdWritableFile()
     }
 }
 
-auto StdWritableFile::append(std::span<const std::byte> data) -> Status
+auto StdWritableFile::append(std::span<const std::byte> data) -> bool
 {
     if (!stream_.is_open())
-        return Status::io_error("failed to open file for writing");
+        return false;
 
     stream_.write(reinterpret_cast<const char*>(data.data()), data.size());
     if (stream_.bad())
-        return Status::io_error("failed to write to file");
+        return false;
 
-    return Status::ok();
+    return true;
 }
 
-auto StdWritableFile::flush() -> Status
+auto StdWritableFile::flush() -> bool
 {
     if (!stream_.is_open())
-        return Status::io_error("failed to open file for writing");
+        return false;
 
     stream_.flush();
     if (stream_.bad())
-        return Status::io_error("failed to flush file");
+        return false;
 
-    return Status::ok();
+    return true;
 }
 
-auto StdWritableFile::sync() -> Status
+auto StdWritableFile::sync() -> bool
 {
     // std::ofstream doesn't provide a way to sync the underlying file descriptor,
     // so we rely on flush() to do that. This may not be sufficient for all platforms,

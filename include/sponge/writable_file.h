@@ -1,12 +1,10 @@
-#ifndef SPONGE_LEVELDB_WRITABLE_FILE_H
-#define SPONGE_LEVELDB_WRITABLE_FILE_H
+#ifndef SPONGE_WRITABLE_FILE_H
+#define SPONGE_WRITABLE_FILE_H
 
 #include <fstream>
 #include <span>
 
-#include <sponge/leveldb/status.h>
-
-namespace spg::leveldb {
+namespace spg {
 
 class StdWritableFile {
 public:
@@ -20,16 +18,16 @@ public:
 
     ~StdWritableFile();
 
-    auto append(std::span<const std::byte> data) -> Status;
+    auto append(std::span<const std::byte> data) -> bool;
 
-    auto flush() -> Status;
+    auto flush() -> bool;
 
-    auto sync() -> Status;
+    auto sync() -> bool;
 
 private:
     std::ofstream stream_;
 };
 
-} // namespace spg::leveldb
+} // namespace spg
 
-#endif // SPONGE_LEVELDB_WRITABLE_FILE_H
+#endif // SPONGE_WRITABLE_FILE_H
