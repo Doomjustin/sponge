@@ -31,15 +31,12 @@ public:
     template<typename Func>
     auto access(std::string_view key, Func&& func) -> decltype(auto)
     {
-        auto index = hash(key, use_fnv_1a) & SEGMENT_MASK;
-        std::shared_lock<std::shared_mutex> locker{ locks_[index] };
+        auto segment_index = index_for(key);
+        std::shared_lock<std::shared_mutex> locker{ locks_[segment_index] };
 
-        auto& segment = datas_[index];
+        auto& segment = datas_[segment_index];
         auto it = segment.find(key);
-        if (it != segment.end())
-            return func(&it->second);
-
-        return func(nullptr);
+        return func(segment, it);
     }
 
     template<typename Func>

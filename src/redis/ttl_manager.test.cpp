@@ -13,8 +13,7 @@ TEST_CASE("TTLManager identifies persistent time point", "[spg_redis_ttl_manager
 TEST_CASE("TTLManager maps negative ttl to persistent sentinel",
           "[spg_redis_ttl_manager][expire_at_cast]")
 {
-    REQUIRE(TTLManager::expire_at(TTLManager::Milliseconds{ -1 }, 
-            spg::redis::return_integral) == -1);
+    REQUIRE(TTLManager::expire_at(-1) == -1);
 }
 
 TEST_CASE("TTLManager converts positive ttl to future time point",
@@ -38,7 +37,7 @@ TEST_CASE("TTLManager converts positive ttl to future integral expiration time",
     auto before{ std::chrono::duration_cast<TTLManager::Milliseconds>(
                      TTLManager::Clock::now().time_since_epoch()).count() };
 
-    auto expire_at{ TTLManager::expire_at(ttl, spg::redis::return_integral) };
+    auto expire_at{ TTLManager::expire_at(ttl.count()) };
 
     auto after{ std::chrono::duration_cast<TTLManager::Milliseconds>(
                     TTLManager::Clock::now().time_since_epoch()).count() };

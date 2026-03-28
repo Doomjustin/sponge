@@ -6,11 +6,6 @@
 
 namespace spg::redis {
 
-struct ReturnIntegralT {};
-
-inline constexpr ReturnIntegralT return_integral{};
-
-
 class TTLManager {
 public:
     using Clock = std::chrono::system_clock;
@@ -20,7 +15,12 @@ public:
     static constexpr std::int64_t PERSISTENT_INTEGRAL = -1;
     static constexpr Milliseconds PERSISTENT_DURATION = Milliseconds{ -1 };
 
-    static auto ttl(std::int64_t expire_at) -> std::optional<Milliseconds>;
+    static auto now() -> std::int64_t
+    {
+        return std::chrono::duration_cast<Milliseconds>(Clock::now().time_since_epoch()).count();
+    }
+
+    static auto ttl(std::int64_t expire_at) -> std::optional<int64_t>;
 
     static constexpr auto is_persist(TimePoint tp) noexcept -> bool
     {
@@ -41,7 +41,7 @@ public:
 
     static auto expire_at(Milliseconds ttl) noexcept -> TimePoint;
 
-    static auto expire_at(Milliseconds ttl, ReturnIntegralT t) noexcept -> std::int64_t;
+    static auto expire_at(int64_t ttl_ms) noexcept -> std::int64_t;
 };
 
 } // namespace spg::redis

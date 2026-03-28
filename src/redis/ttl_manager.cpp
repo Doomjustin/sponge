@@ -2,18 +2,17 @@
 
 namespace spg::redis {
 
-auto TTLManager::ttl(std::int64_t expire_at) -> std::optional<Milliseconds>
+auto TTLManager::ttl(std::int64_t expire_at) -> std::optional<int64_t>
 {
     if (expire_at == PERSISTENT_INTEGRAL)
-        return PERSISTENT_DURATION;
+        return PERSISTENT_INTEGRAL;
 
-    auto now =
-        std::chrono::duration_cast<Milliseconds>(Clock::now().time_since_epoch()).count();
+    auto current = now();
 
-    if (now >= expire_at)
-        return Milliseconds{ 0 };
+    if (current >= expire_at)
+        return 0;
 
-    return Milliseconds{ expire_at - now };
+    return expire_at - current;
 }
 
 auto TTLManager::is_expired(std::int64_t expire_at) noexcept -> bool
@@ -21,9 +20,7 @@ auto TTLManager::is_expired(std::int64_t expire_at) noexcept -> bool
     if (is_persist(expire_at))
         return false; // 负数表示持久化
 
-    auto now =
-        std::chrono::duration_cast<Milliseconds>(Clock::now().time_since_epoch()).count();
-    return now >= expire_at;
+    return now() >= expire_at;
 }
 
 auto TTLManager::expire_at(Milliseconds ttl) noexcept -> TimePoint
@@ -34,13 +31,16 @@ auto TTLManager::expire_at(Milliseconds ttl) noexcept -> TimePoint
     return Clock::now() + ttl;
 }
 
-auto TTLManager::expire_at(Milliseconds ttl, ReturnIntegralT t) noexcept -> std::int64_t
+auto TTLManager::expire_at(int64_t ttl_ms) noexcept -> std::int64_t
 {
-    if (ttl.count() < 0)
+    if (ttl_ms < 0)
         return PERSISTENT_INTEGRAL; // 负数表示持久化
 
-    auto expire_at = Clock::now() + ttl;
-    return std::chrono::duration_cast<Milliseconds>(expire_at.time_since_epoch()).count();
+    auto expire_at = now() + ttl_ms;
+    if (expire_at < 0) // 防止溢出
+        return PERSISTENT_INTEGRAL;
+    
+    return expire_at;
 }
 
 } // namespace spg::redis
