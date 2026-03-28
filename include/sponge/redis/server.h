@@ -26,9 +26,9 @@ private:
     std::atomic<bool> stopping_ = false;
     std::vector<boost::asio::ip::tcp::acceptor> acceptors_;
 
-    auto listener(boost::asio::ip::tcp::acceptor& acceptor, ThreadContext context) -> boost::asio::awaitable<void>;
+    auto listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) -> boost::asio::awaitable<void>;
 
-    auto do_session(boost::asio::ip::tcp::socket socket, ThreadContext& context) -> boost::asio::awaitable<void>;
+    auto do_session(boost::asio::ip::tcp::socket socket, size_t index) -> boost::asio::awaitable<void>;
 
     auto graceful_shutdown(boost::asio::io_context& context) -> boost::asio::awaitable<void>;
 };

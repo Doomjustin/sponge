@@ -17,7 +17,7 @@ public:
     using Size = size_t;
     using Socket = boost::asio::ip::tcp::socket;
 
-    Session(Socket socket, ThreadContext& context);
+    Session(Socket socket, ApplicationContext& context, Index index);
 
     auto run() -> boost::asio::awaitable<void>;
 
@@ -26,8 +26,9 @@ private:
     static constexpr size_t MAX_QUERY_SIZE = 1024 * 1024 * 1024; // 1GB
 
     Socket socket_;
-    ThreadContext& context_;
+    ApplicationContext& context_;
     Reply reply_;
+    Index index_;
 };
 
 } // namespace spg::redis

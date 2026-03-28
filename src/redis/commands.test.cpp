@@ -1,72 +1,78 @@
 #include "commands.h"
 
 #include <array>
-#include <memory_resource>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
 
 using namespace spg::redis;
 
+namespace {
+
+void run_dispatch(ApplicationContext& app,
+                  Reply& reply,
+                  std::span<const std::string_view> cmd)
+{
+    CommandContext context{ .application_context = app, .reply = reply };
+    commands::dispatch(context, cmd);
+}
+
+} // namespace
+
 TEST_CASE("dispatch handles known command case-insensitively", "[commands]")
 {
-    DBShard shard{ std::pmr::new_delete_resource() };
+    ApplicationContext app{ 1 };
     Reply reply;
-    CommandContext context{ std::span<DBShard>{ &shard, 1 }, reply };
 
     std::array<std::string_view, 3> cmd{ "set", "mykey", "myvalue" };
-    commands::dispatch(context, cmd);
+    run_dispatch(app, reply, cmd);
 
     REQUIRE(reply.str() == "+OK\r\n");
 }
 
 TEST_CASE("dispatch returns error for unknown command", "[commands]")
 {
-    DBShard shard{ std::pmr::new_delete_resource() };
+    ApplicationContext app{ 1 };
     Reply reply;
-    CommandContext context{ std::span<DBShard>{ &shard, 1 }, reply };
 
     std::array<std::string_view, 1> cmd{ "no_such_cmd" };
-    commands::dispatch(context, cmd);
+    run_dispatch(app, reply, cmd);
 
     REQUIRE(reply.str() == "-ERR unknown command 'NO_SUCH_CMD'\r\n");
 }
 
 TEST_CASE("dispatch validates argument count for GET", "[commands]")
 {
-    DBShard shard{ std::pmr::new_delete_resource() };
+    ApplicationContext app{ 1 };
     Reply reply;
-    CommandContext context{ .shards=std::span<DBShard>{ &shard, 1 }, .reply=reply };
 
     std::array<std::string_view, 1> cmd{ "GET" };
-    commands::dispatch(context, cmd);
+    run_dispatch(app, reply, cmd);
 
     REQUIRE(reply.str() == "-ERR wrong number of arguments\r\n");
 }
 
 TEST_CASE("dispatch validates argument count for SET", "[commands]")
 {
-    DBShard shard{ std::pmr::new_delete_resource() };
+    ApplicationContext app{ 1 };
     Reply reply;
-    CommandContext context{ .shards=std::span<DBShard>{ &shard, 1 }, .reply=reply };
 
     std::array<std::string_view, 2> cmd{ "SET", "only_key" };
-    commands::dispatch(context, cmd);
+    run_dispatch(app, reply, cmd);
 
     REQUIRE(reply.str() == "-ERR wrong number of arguments\r\n");
 }
 
 TEST_CASE("dispatch appends output on repeated calls", "[commands]")
 {
-    DBShard shard{ std::pmr::new_delete_resource() };
+    ApplicationContext app{ 1 };
     Reply reply;
-    CommandContext context{ .shards=std::span<DBShard>{ &shard, 1 }, .reply=reply };
 
     std::array<std::string_view, 3> set_cmd{ "SET", "k", "v" };
     std::array<std::string_view, 2> bad_set_cmd{ "SET", "k" };
 
-    commands::dispatch(context, set_cmd);
-    commands::dispatch(context, bad_set_cmd);
+    run_dispatch(app, reply, set_cmd);
+    run_dispatch(app, reply, bad_set_cmd);
 
     REQUIRE(reply.str() == "+OK\r\n-ERR wrong number of arguments\r\n");
 }

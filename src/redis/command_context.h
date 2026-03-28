@@ -1,6 +1,7 @@
 #ifndef SPONGE_REDIS_COMMAND_CONTEXT_H
 #define SPONGE_REDIS_COMMAND_CONTEXT_H
 
+#include <sponge/redis/application_context.h>
 #include <sponge/redis/db_shard.h>
 
 #include "reply.h"
@@ -8,21 +9,18 @@
 namespace spg::redis {
 
 struct CommandContext {
-    std::span<DBShard> shards;
+    ApplicationContext& application_context;
     Reply& reply;
 
-    auto shard(std::string_view key) noexcept -> DBShard&
+    auto io_context(std::size_t hash) -> boost::asio::io_context&
     {
-        size_t key_hash = hash(key, use_fnv_1a);
-        return shard(key_hash, by_hash);
-    }
-    
-    auto shard(size_t key_hash, ByHashT by_hash) noexcept -> DBShard&
-    {
-        return shards[key_hash % shards.size()];
+        return application_context.io_context(hash, by_hash);
     }
 
-    auto shard(size_t index) noexcept -> DBShard& { return shards[index]; }
+    auto shard(std::size_t hash) -> DBShard&
+    {
+        return application_context.shard(hash, by_hash);
+    }
 };
 
 } // namespace spg::redis

@@ -57,17 +57,17 @@ constexpr auto bind_command() -> CommandHandler
             return;
         }
 
-        auto invoker = [&]<size_t... Is>(std::index_sequence<Is...>)
+        auto invoker = [&]<size_t... Is>(std::index_sequence<Is...>) -> void
         {
-            try {
-                Func(context, parse_arg<std::tuple_element_t<Is, typename Traits::args_tuple>>(args[Is])...);
-            }
-            catch (const std::exception& ex) {
-                context.reply.append(Error{ fmt::format("ERR {}", ex.what()) });
-            }
+            Func(context, parse_arg<std::tuple_element_t<Is, typename Traits::args_tuple>>(args[Is])...);
         };
 
-        invoker(std::make_index_sequence<expected_arity>{});
+        try {
+            invoker(std::make_index_sequence<expected_arity>{});
+        }
+        catch (const std::exception& ex) {
+            context.reply.append(Error{ fmt::format("ERR {}", ex.what()) });
+        }
     };
 }
 
@@ -96,6 +96,11 @@ constexpr auto sorted_commands = build_sorted_commands();
 
 void commands::dispatch(CommandContext& context, std::span<const std::string_view> cmd)
 {
+    if (cmd.empty()) {
+        context.reply.append(Error{ "ERR empty command" });
+        return;
+    }
+
     auto name = to_uppercase(cmd[0]);
     auto it = std::ranges::lower_bound(sorted_commands, 
                                                         std::string_view{ name }, 

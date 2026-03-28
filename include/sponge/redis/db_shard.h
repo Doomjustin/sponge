@@ -47,7 +47,36 @@ public:
     using MemoryResource = std::pmr::memory_resource;
     using MilliSeconds = TTLManager::Milliseconds;
 
+    struct Entry {
+        Value value;
+        std::int64_t expire_at;
+    };
+
     explicit DBShard(MemoryResource* resource);
+
+    template<typename Func>
+    auto access(std::string_view key, Func&& func) -> decltype(auto)
+    {
+        return tables_.access(key, [&] (const Entry* entry) {
+            if (entry && ttl_manager_.is_expired(entry->expire_at)) 
+                return func(nullptr);
+            
+            return func(entry ? &entry->value : nullptr);
+        });
+    }
+
+    template<typename Func>
+    auto modify(std::string_view key, Func&& func) -> decltype(auto)
+    {
+        return tables_.modify(key, [&] (DashTable<Entry>::Segment& segment, auto it) {
+            if (it != segment.end() && ttl_manager_.is_expired(it->second.expire_at)) {
+                segment.erase(it);
+                return func(segment, segment.end());
+            }
+
+            return func(segment, it);
+        });
+    }
 
     auto get(std::string_view key, AsStringT t) -> std::optional<std::string_view>;
 
@@ -90,10 +119,7 @@ public:
     }
 
 private:
-    struct Entry {
-        Value value;
-        std::int64_t expire_at;
-    };
+
 
     MemoryResource* resource_;
     DashTable<Entry> tables_;

@@ -39,7 +39,7 @@ void Server::run()
         acceptors_.push_back(std::move(acceptor));
 
         asio::co_spawn(context, 
-                       listener(acceptors_.back(), application_context_.thread_context(i)), 
+                       listener(acceptors_.back(), i), 
                        asio::detached);
     }
 
@@ -49,7 +49,7 @@ void Server::run()
     application_context_.run();
 }
 
-auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, ThreadContext context) -> boost::asio::awaitable<void>
+auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) -> boost::asio::awaitable<void>
 {
     auto address = acceptor.local_endpoint().address().to_string();
     auto port = acceptor.local_endpoint().port();
@@ -58,7 +58,7 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, ThreadContext co
     try {
         while (true) {
             auto socket = co_await acceptor.async_accept(asio::use_awaitable);
-            asio::co_spawn(acceptor.get_executor(), do_session(std::move(socket), context), asio::detached);
+            asio::co_spawn(acceptor.get_executor(), do_session(std::move(socket), index), asio::detached);
         }
     } catch (const boost::system::system_error& e) {
         if (!stopping_)
@@ -68,9 +68,9 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, ThreadContext co
     }
 }
 
-auto Server::do_session(asio::ip::tcp::socket socket, ThreadContext& context) -> boost::asio::awaitable<void>
+auto Server::do_session(asio::ip::tcp::socket socket, size_t index) -> boost::asio::awaitable<void>
 {
-    Session session{ std::move(socket), context };
+    Session session{ std::move(socket), application_context_, index };
     co_await session.run();
 }
 

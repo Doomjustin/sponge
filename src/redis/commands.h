@@ -4,6 +4,8 @@
 #include <span>
 #include <string_view>
 
+#include <boost/asio.hpp>
+
 #include "command_context.h"
 
 namespace spg::redis {

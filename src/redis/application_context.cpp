@@ -3,24 +3,24 @@
 namespace spg::redis {
 
 ApplicationContext::ApplicationContext(Size count)
-    : io_context_pool(count)
+    : io_context_pool_(count)
 {
-    pools.reserve(count);
-    resources.reserve(count);
-    shards.reserve(count);
+    pools_.reserve(count);
+    resources_.reserve(count);
+    shards_.reserve(count);
 
     for (Size i = 0; i < count; ++i) {
-        pools.emplace_back(std::make_unique<Pool>());
-        resources.emplace_back(std::make_unique<TrackingMemoryResource>(pools.back().get()));
-        shards.emplace_back(resources.back().get());
+        pools_.emplace_back(std::make_unique<Pool>());
+        resources_.emplace_back(std::make_unique<TrackingMemoryResource>(pools_.back().get()));
+        shards_.emplace_back(std::make_unique<DBShard>(resources_.back().get()));
     }
 }
 
 constexpr auto ApplicationContext::data_size() const noexcept -> Size
 {
     auto total_size = Size{ 0 };
-    for (const auto& shard : shards)
-        total_size += shard.size();
+    for (const auto& shard : shards_)
+        total_size += shard->size();
     
     return total_size;
 }

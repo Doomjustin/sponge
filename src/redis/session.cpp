@@ -1,6 +1,5 @@
 #include "session.h"
 
-#include <algorithm>
 #include <print>
 
 #include <boost/asio.hpp>
@@ -14,9 +13,10 @@ namespace beast = boost::beast;
 
 namespace spg::redis {
 
-Session::Session(Socket socket, ThreadContext& context)
+Session::Session(Socket socket, ApplicationContext& context, Index index)
   : socket_{ std::move(socket) }, 
-    context_{ context }
+    context_{ context },
+    index_{ index }
 {
     socket_.set_option(asio::ip::tcp::no_delay(true));
 }
@@ -24,7 +24,7 @@ Session::Session(Socket socket, ThreadContext& context)
 auto Session::run() -> boost::asio::awaitable<void>
 {
     beast::flat_buffer buffer{ MAX_QUERY_SIZE };
-    CommandContext context{ .shards=context_.shards, .reply=reply_ };
+    CommandContext context{ .application_context = context_, .reply = reply_ };
 
     try {
         while (true) {
@@ -35,12 +35,14 @@ auto Session::run() -> boost::asio::awaitable<void>
             while (buffer.size() > 0) {
                 std::string_view data{ static_cast<const char*>(buffer.data().data()), buffer.size() };
 
-                auto [commands, consumed_bytes] = resp::parse_request(data, &context_.resource);
+                auto [commands, consumed_bytes] = resp::parse_request(data, context_.resource(index_));
 
                 if (commands.empty())
                     break; // 半包，继续等待数据
 
-                std::ranges::for_each(commands, [&context] (const auto& cmd) { commands::dispatch(context, cmd); });
+                for (const auto& cmd : commands)
+                    commands::dispatch(context, cmd);
+
                 buffer.consume(consumed_bytes);
             }
 

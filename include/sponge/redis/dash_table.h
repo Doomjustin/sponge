@@ -3,6 +3,8 @@
 
 #include <array>
 #include <cstddef>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -17,30 +19,62 @@ public:
     using Key = std::pmr::string;
     using Size = std::size_t;
     using MemoryResource = std::pmr::memory_resource;
+    using Segment = std::pmr::unordered_map<Key, Value, PmrStringHash, std::equal_to<>>;
 
     explicit DashTable(MemoryResource* resource)
       : resource_{ resource }
     {
         for (auto& segment : datas_)
-            segment = Container{ resource };
+            segment = Segment{ resource };
+    }
+
+    template<typename Func>
+    auto access(std::string_view key, Func&& func) -> decltype(auto)
+    {
+        auto index = hash(key, use_fnv_1a) & SEGMENT_MASK;
+        std::shared_lock<std::shared_mutex> locker{ locks_[index] };
+
+        auto& segment = datas_[index];
+        auto it = segment.find(key);
+        if (it != segment.end())
+            return func(&it->second);
+
+        return func(nullptr);
+    }
+
+    template<typename Func>
+    auto modify(std::string_view key, Func&& func) -> decltype(auto)
+    {
+        auto segment_index = index_for(key);
+        std::unique_lock<std::shared_mutex> locker{ locks_[segment_index] };
+
+        auto& segment = datas_[segment_index];
+        auto it = segment.find(key);
+        return func(segment, it);
     }
 
     auto get(std::string_view key) -> Value*
     {
-        auto& segment = datas_[hash(key, use_fnv_1a) & SEGMENT_MASK];
+        auto segment_index = index_for(key);
+        std::unique_lock<std::shared_mutex> locker{ locks_[segment_index] };
+        auto& segment = datas_[segment_index];
         auto it = segment.find(key);
         return (it != segment.end()) ? &it->second : nullptr;
     }
 
     void set(std::string_view key, Value value)
     {
-        auto& segment = datas_[hash(key, use_fnv_1a) & SEGMENT_MASK];
+        auto segment_index = index_for(key);
+        std::unique_lock<std::shared_mutex> locker{ locks_[segment_index] };
+        auto& segment = datas_[segment_index];
         segment.insert_or_assign(Key{ key, resource_ }, std::move(value));
     }
 
     auto erase(std::string_view key) -> bool
     {
-        auto& segment = datas_[hash(key, use_fnv_1a) & SEGMENT_MASK];
+        auto segment_index = index_for(key);
+        std::unique_lock<std::shared_mutex> locker{ locks_[segment_index] };
+        auto& segment = datas_[segment_index];
         return segment.erase(Key{ key, resource_ }) > 0;
     }
 
@@ -48,8 +82,10 @@ public:
     constexpr auto size() const noexcept -> Size
     {
         Size total = 0;
-        for (const auto& segment : datas_)
-            total += segment.size();
+        for (size_t i = 0; i < SEGMENTS; ++i) {
+            std::shared_lock<std::shared_mutex> locker{ locks_[i] };
+            total += datas_[i].size();
+        }
 
         return total;
     }
@@ -57,8 +93,9 @@ public:
     [[nodiscard]]
     constexpr auto empty() const noexcept -> bool
     {
-        for (const auto& segment : datas_) {
-            if (!segment.empty())
+        for (size_t i = 0; i < SEGMENTS; ++i) {
+            std::shared_lock<std::shared_mutex> locker{ locks_[i] };
+            if (!datas_[i].empty())
                 return false;
         }
 
@@ -66,13 +103,18 @@ public:
     }
 
 private:
-    using Container = std::pmr::unordered_map<Key, Value, PmrStringHash, std::equal_to<>>;
-
     static constexpr Size SEGMENTS = 1024;
     static constexpr Size SEGMENT_MASK = SEGMENTS - 1;
 
     MemoryResource* resource_;
-    std::array<Container, SEGMENTS> datas_;
+    std::array<Segment, SEGMENTS> datas_;
+    mutable std::array<std::shared_mutex, SEGMENTS> locks_;
+
+    [[nodiscard]]
+    auto index_for(std::string_view key) const -> Size
+    {
+        return hash(key, use_fnv_1a) & SEGMENT_MASK;
+    }
 };
 
 } // namespace spg::redis
