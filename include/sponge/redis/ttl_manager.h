@@ -8,7 +8,8 @@ namespace spg::redis {
 
 struct ReturnIntegralT {};
 
-static constexpr ReturnIntegralT return_integral{};
+inline constexpr ReturnIntegralT return_integral{};
+
 
 class TTLManager {
 public:

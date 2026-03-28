@@ -84,8 +84,6 @@ public:
 
     void set(std::string_view key, std::string_view value);
 
-    void set(std::string_view key, Integral value);
-
     auto erase(std::string_view key) -> bool;
 
     auto holds(std::string_view key, AsStringT t) -> bool;
@@ -119,8 +117,6 @@ public:
     }
 
 private:
-
-
     MemoryResource* resource_;
     DashTable<Entry> tables_;
     TTLManager ttl_manager_;
