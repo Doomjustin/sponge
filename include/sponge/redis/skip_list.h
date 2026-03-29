@@ -9,12 +9,9 @@
 #include <utility>
 
 #include <sponge/range.h>
+#include <sponge/tag.h>
 
 namespace spg::redis {
-
-struct ByRankTag {};
-inline constexpr ByRankTag by_rank{};
-
 
 // 这是 Redis 风格的内部跳表组件，不是通用容器。
 // 设计约束：仅供上层 dict 协同调用；关键前置条件由上层保证。

@@ -8,6 +8,7 @@
 #include <boost/asio/io_context.hpp>
 
 #include <sponge/io_contexts.h>
+#include <sponge/tag.h>
 #include <sponge/tracking_resource.h>
 
 #include "aof.h"
@@ -29,27 +30,17 @@ public:
 
     ~ApplicationContext() = default;
 
-    void run()
-    {
-        io_context_pool_.run();
-    }
-
-    void stop()
-    {
-        io_context_pool_.stop();
-    }
-
     [[nodiscard]]
     constexpr auto data_size() const noexcept -> Size;
 
-    auto shard(Size key_hash, ByHashT by_hash) noexcept -> DBShard&
+    auto shard(Size key_hash, ByHashTag by_hash) noexcept -> DBShard&
     {
         return *shards_[key_hash % shards_.size()];
     }
 
     auto shard(Size index) noexcept -> DBShard& { return *shards_[index]; }
 
-    auto io_context(Size key_hash, ByHashT by_hash) noexcept -> boost::asio::io_context&
+    auto io_context(Size key_hash, ByHashTag by_hash) noexcept -> boost::asio::io_context&
     {
         return io_context_pool_[key_hash % io_context_pool_.size()];
     }
@@ -68,6 +59,11 @@ public:
     auto aof() noexcept -> AOF&
     {
         return aof_;
+    }
+
+    auto shards() const noexcept -> std::span<const std::unique_ptr<DBShard>>
+    {
+        return shards_;
     }
 
 private:

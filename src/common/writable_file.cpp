@@ -1,9 +1,14 @@
 #include <sponge/writable_file.h>
 
 namespace spg {
-    
+
 StdWritableFile::StdWritableFile(std::string_view filename)
-  : stream_{ filename.data(), std::ios::app | std::ios::binary | std::ios::out }
+  : StdWritableFile{ std::filesystem::path{ filename } }
+{}
+
+StdWritableFile::StdWritableFile(std::filesystem::path filename)
+  : filename_{ std::move(filename) },
+    stream_{ filename_, std::ios::app | std::ios::binary | std::ios::out }
 {}
 
 StdWritableFile::~StdWritableFile()
@@ -46,4 +51,24 @@ auto StdWritableFile::sync() -> bool
     return flush();
 }
 
-} // namespace spg::leveldb
+void StdWritableFile::close()
+{
+    if (stream_.is_open()) {
+        stream_.flush();
+        stream_.close();
+    }
+}
+
+void StdWritableFile::reopen(std::string_view filename)
+{
+    reopen(std::filesystem::path{ filename });
+}
+
+void StdWritableFile::reopen(std::filesystem::path path)
+{
+    close();
+    filename_ = std::move(path);
+    stream_.open(filename_, std::ios::app | std::ios::binary | std::ios::out);
+}
+
+} // namespace spg

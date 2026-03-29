@@ -12,11 +12,9 @@
 #include <fmt/format.h>
 #include <gsl/gsl>
 
-namespace spg::redis {
+#include <sponge/tag.h>
 
-// 更激进扩容策略的标签类型。
-struct ExpandGreedyTag{};
-inline constexpr ExpandGreedyTag greedy{};
+namespace spg::redis {
 
 // 基于 SDS 的 Redis 风格动态字符串。
 //

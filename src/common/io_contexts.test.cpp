@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <future>
-#include <thread>
 
 #include <boost/asio.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -24,9 +23,6 @@ TEST_CASE("IOContexts 执行投递的任务", "[io_contexts]")
     auto done_future = done.get_future();
     std::atomic<bool> ran{ false };
 
-    // run() 是阻塞的，必须放到后台线程
-    std::thread runner([&pool] { pool.run(); });
-
     boost::asio::post(pool[0], [&ran, &done]() {
         ran.store(true, std::memory_order_relaxed);
         done.set_value();
@@ -34,46 +30,44 @@ TEST_CASE("IOContexts 执行投递的任务", "[io_contexts]")
 
     auto status = done_future.wait_for(1s);
 
-    // 无论断言结果如何都先停止，避免 join() 死锁
-    pool.stop();
-    runner.join();
-
     REQUIRE(status == std::future_status::ready);
     REQUIRE(ran.load(std::memory_order_relaxed));
 }
 
-TEST_CASE("IOContexts stop 重置 work guard 后 run 正常返回", "[io_contexts]")
+TEST_CASE("IOContexts 多个上下文都能执行任务", "[io_contexts]")
 {
-    IOContexts pool{ 1 };
-    std::atomic<bool> run_returned{ false };
+    IOContexts pool{ 2 };
+    std::promise<void> done0;
+    std::promise<void> done1;
+    auto fut0 = done0.get_future();
+    auto fut1 = done1.get_future();
+    std::atomic<bool> ran0{ false };
+    std::atomic<bool> ran1{ false };
 
-    std::thread runner([&pool, &run_returned] {
-        pool.run();
-        run_returned.store(true, std::memory_order_relaxed);
+    boost::asio::post(pool[0], [&]() {
+        ran0.store(true, std::memory_order_relaxed);
+        done0.set_value();
     });
 
-    pool.stop(); // 重置 work guard → io_context 空闲时 run() 返回
-    runner.join();
+    boost::asio::post(pool[1], [&]() {
+        ran1.store(true, std::memory_order_relaxed);
+        done1.set_value();
+    });
 
-    REQUIRE(run_returned.load(std::memory_order_relaxed));
+    REQUIRE(fut0.wait_for(1s) == std::future_status::ready);
+    REQUIRE(fut1.wait_for(1s) == std::future_status::ready);
+    REQUIRE(ran0.load(std::memory_order_relaxed));
+    REQUIRE(ran1.load(std::memory_order_relaxed));
 }
 
-TEST_CASE("IOContexts force_stop 后投递的新任务不执行", "[io_contexts]")
+TEST_CASE("IOContexts 析构可安全返回", "[io_contexts]")
 {
-    IOContexts pool{ 1 };
-    std::atomic<bool> executed{ false };
+    auto start = std::chrono::steady_clock::now();
+    {
+        IOContexts pool{ 1 };
+    }
 
-    std::thread runner([&pool] { pool.run(); });
-
-    pool.force_stop();   // 立即停止 io_context，run() 尽快返回
-    runner.join();       // 确认 run() 已返回，上下文已停止
-
-    // 此时 io_context 已停止，新投递的任务不会被执行
-    boost::asio::post(pool[0], [&executed]() {
-        executed.store(true, std::memory_order_relaxed);
-    });
-
-    std::this_thread::sleep_for(50ms);
-    REQUIRE_FALSE(executed.load(std::memory_order_relaxed));
+    auto elapsed = std::chrono::steady_clock::now() - start;
+    REQUIRE(elapsed < 1s);
 }
 

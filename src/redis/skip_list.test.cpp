@@ -198,7 +198,7 @@ TEST_CASE("SkipList find by rank (1-based)", "[redis][skip_list]")
 
     // Test each rank corresponds to correct element (1-based)
     for (size_t i = 0; i < ordered.size(); ++i) {
-        const auto it = list.find(i + 1, spg::redis::by_rank);
+        const auto it = list.find(i + 1, spg::by_rank);
         REQUIRE(it != list.end());
         const auto [score, element] = *it;
         REQUIRE(score == ordered[i].first);
@@ -206,8 +206,8 @@ TEST_CASE("SkipList find by rank (1-based)", "[redis][skip_list]")
     }
 
     // Rank 0 should not be found
-    REQUIRE(list.find(0, spg::redis::by_rank) == list.end());
+    REQUIRE(list.find(0, spg::by_rank) == list.end());
 
     // Rank beyond size should not be found
-    REQUIRE(list.find(list.size() + 1, spg::redis::by_rank) == list.end());
+    REQUIRE(list.find(list.size() + 1, spg::by_rank) == list.end());
 }

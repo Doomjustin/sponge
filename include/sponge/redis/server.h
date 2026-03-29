@@ -21,19 +21,22 @@ public:
 private:
     static constexpr std::string_view AOF_FILENAME = "/tmp/sponge/redis.aof";
 
+    boost::asio::io_context io_context_;
     ApplicationContext application_context_;
     std::pmr::string address_;
     std::pmr::string port_;
     std::atomic<bool> stopping_ = false;
     std::pmr::vector<boost::asio::ip::tcp::acceptor> acceptors_;
 
-    auto listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) -> boost::asio::awaitable<void>;
+    auto listener(size_t index) -> boost::asio::awaitable<void>;
 
     auto do_session(boost::asio::ip::tcp::socket socket, size_t index) -> boost::asio::awaitable<void>;
 
-    auto graceful_shutdown(boost::asio::io_context& context) -> boost::asio::awaitable<void>;
+    auto graceful_shutdown() -> boost::asio::awaitable<void>;
 
     void load_aof(std::string_view filepath);
+
+    auto cron() -> boost::asio::awaitable<void>;
 };
 
 } // namespace spg::redis

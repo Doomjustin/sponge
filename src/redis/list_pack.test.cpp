@@ -454,9 +454,9 @@ TEST_CASE("ListPack 非数字字符串走 str 路径", "[list_pack]")
     CHECK(lp1.byte_size() > lp2.byte_size());
 }
 
-// ── pmr 资源隔离 ──────────────────────────────────────────────────────────
+// ── 基础行为 ──────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack 使用自定义 pmr 资源", "[list_pack]")
+TEST_CASE("ListPack push_back 基础行为", "[list_pack]")
 {
     ListPack lp{ 256 };
 

@@ -55,8 +55,6 @@ private:
     auto extract(ListPack::Iterator iter, AsScoreT as_score) -> Score;
 }; 
 
-
-
 } // namespace spg::redis
 
 #endif // SPONGE_REDIS_SORTED_SET_H

@@ -83,7 +83,7 @@ struct Command {
     Type type;
 };
 
-constexpr std::array<Command, 12> commands {
+constexpr std::array<Command, 15> commands {
     // -------- key commands --------
     Command{ .name="EXISTS", .handler=&command::exists, .type=Type::Read },
     Command{ .name="DEL", .handler=&command::del, .type=Type::Write },
@@ -99,6 +99,10 @@ constexpr std::array<Command, 12> commands {
     // ------ sorted set commands ------
     Command{ .name="ZADD", .handler=&command::zadd, .type=Type::Write },
     Command{ .name="ZSCORE", .handler=bind_command<&command::zscore>(), .type=Type::Read },
+    // ------- other commands --------
+    Command{ .name="BGREWRITEAOF", .handler=bind_command<&command::bg_rewrite_aof>(), .type=Type::Read },
+    Command{ .name="FLUSHALL", .handler=&command::flushall, .type=Type::Write },
+    Command{ .name="DBSIZE", .handler=bind_command<&command::dbsize>(), .type=Type::Read },
 };
 
 // 为了后续的二分查找，我们需要保证 commands 数组是按 name 排序的
@@ -130,16 +134,16 @@ void commands::dispatch(CommandContext& context, const resp::Command& cmd)
                                                         &Command::name);
 
     if (it != sorted_commands.end() && it->name == name) {
-        if (it->type == Type::Write && !context.application_context.aof().is_healthy()) {
+        if (it->type == Type::Write && !context.aof().is_healthy()) {
             context.reply.append(Error{"MISCONF AOF is configured to save data, but is currently not able to persist on disk. Commands that may modify the data set are disabled."});
             return;
         }
-
-        std::span<const std::string_view> args{ arguments.data() + 1, arguments.size() - 1 };
-        it->handler(context, args);
         
         if (it->type == Type::Write && !context.is_aof_loading)
             context.append(cmd.raw);
+        
+        std::span<const std::string_view> args{ arguments.data() + 1, arguments.size() - 1 };
+        it->handler(context, args);
     }
     else {
         context.reply.append(Error{ fmt::format("ERR unknown command '{}'", name) });

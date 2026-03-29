@@ -41,6 +41,14 @@ struct command {
     static void zadd(CommandContext& context, std::span<const std::string_view> args);
 
     static void zscore(CommandContext& context, std::string_view key, std::string_view member);
+
+    // ------- other commands --------
+
+    static void bg_rewrite_aof(CommandContext& context);
+
+    static void flushall(CommandContext& context, std::span<const std::string_view> args);
+
+    static void dbsize(CommandContext& context);
 };
 
 } // namespace spg::redis

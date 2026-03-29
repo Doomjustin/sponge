@@ -147,10 +147,7 @@ void command::rename(CommandContext& context, std::string_view old_key, std::str
     // 跨 shard 重命名，先访问旧 key 获取数据，再修改新 key
     auto& old_shard = context.shard(old_index);
     auto& new_shard = context.shard(new_index); 
-
-    std::unique_lock old_locker{ old_shard.mutex_of(old_key), std::defer_lock };
-    std::unique_lock new_locker{ new_shard.mutex_of(new_key), std::defer_lock };
-    std::lock(old_locker, new_locker);
+    std::scoped_lock locker{ old_shard.mutex_of(old_key), new_shard.mutex_of(new_key) };
 
     auto old_entry = old_shard.get_entry(old_key);
     if (!old_entry) {
@@ -336,6 +333,54 @@ void command::zscore(CommandContext& context, std::string_view key, std::string_
     };
 
     context.shard(key).modify(key, zscore_key);
+}
+
+void command::bg_rewrite_aof(CommandContext& context)
+{
+    context.reply.append(ok);
+    context.aof().background_rewrite(context.shards());
+}
+
+void command::flushall(CommandContext& context, std::span<const std::string_view> args)
+{
+    if (args.size() > 1) {
+        context.reply.append(Error{ "ERR wrong number of arguments for 'FLUSHALL' command" });
+        return;
+    }
+
+    auto clear_task = [&context] () -> void
+    {
+        for (auto& shard: context.shards())
+            shard->clear();
+
+        context.aof().reset();
+    };
+
+    if (args.empty()) {
+        context.reply.append(ok);
+        clear_task();
+        return;
+    }
+
+    auto option = to_uppercase(args[0]);
+    if (option != "ASYNC") {
+        context.reply.append(Error{ fmt::format("ERR syntax error: unknown option '{}'", option) });
+        return;
+    }
+
+    std::thread t{ clear_task };
+    t.detach();
+    context.reply.append(ok);
+    return;
+}
+
+void command::dbsize(CommandContext& context)
+{
+    size_t total_size = 0;
+    for (const auto& shard : context.shards())
+        total_size += shard->size();
+
+    context.reply.append(total_size);
 }
 
 } // namespace spg::redis

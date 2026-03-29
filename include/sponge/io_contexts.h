@@ -14,39 +14,33 @@ namespace spg {
 
 class IOContexts {
 public:
-    using Context = boost::asio::io_context;
-    using ContextPtr = std::shared_ptr<Context>;
-    using WorkGuard = boost::asio::executor_work_guard<Context::executor_type>;
-    using Size = std::size_t;
-
-    explicit IOContexts(Size size);
+    explicit IOContexts(size_t size);
 
     IOContexts(const IOContexts&) = delete;
     auto operator=(const IOContexts&) = delete;
 
     ~IOContexts();
 
-    void run();
-
-    void stop();
-
-    void force_stop();
-
     [[nodiscard]]
-    constexpr auto size() const noexcept -> Size
+    constexpr auto size() const noexcept -> size_t
     {
         return io_contexts_.size();
     }
 
-    auto operator[](Size index) -> Context& { return *io_contexts_[index]; }
+    auto operator[](size_t index) -> boost::asio::io_context& 
+    { 
+        return *io_contexts_[index]; 
+    }
 
 private:
-    std::pmr::vector<ContextPtr> io_contexts_;
+    using Context = boost::asio::io_context;
+    using WorkGuard = boost::asio::executor_work_guard<Context::executor_type>;
+
+    std::pmr::vector<std::shared_ptr<Context>> io_contexts_;
     std::pmr::vector<std::jthread> threads_;
     std::pmr::list<WorkGuard> works_;
-    Size next_io_context_ = 0;
 
-    void join_threads();
+    // void join_threads();
 };
 
 } // namespace spg

@@ -381,7 +381,7 @@ TEST_CASE("String greedy reserve doubles capacity below prealloc limit", "[redis
 
 	{
 		spg::redis::String str{ "hi" };
-		str.reserve(10, spg::redis::greedy);
+		str.reserve(10, spg::greedy);
 
 		REQUIRE(str.capacity() == 20);
 		REQUIRE(str.size() == 2);

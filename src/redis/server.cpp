@@ -32,7 +32,7 @@ void Server::run()
 {
     using reuse_port = asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT>;
 
-    asio::ip::tcp::resolver resolver{ application_context_.io_context(0) };
+    asio::ip::tcp::resolver resolver{ io_context_ };
     asio::ip::tcp::endpoint endpoint = *resolver.resolve(address_, port_).begin();
 
     for (size_t i = 0; i < application_context_.size(); ++i) {
@@ -45,19 +45,17 @@ void Server::run()
         acceptor.listen();
         acceptors_.push_back(std::move(acceptor));
 
-        asio::co_spawn(context, 
-                       listener(acceptors_.back(), i), 
-                       asio::detached);
+        asio::co_spawn(context, listener(i), asio::detached);
     }
 
-    auto& first_context = application_context_.io_context(0);
-    asio::co_spawn(first_context, graceful_shutdown(first_context), asio::detached);
-
-    application_context_.run();
+    asio::co_spawn(io_context_, graceful_shutdown(), asio::detached);
+    asio::co_spawn(io_context_, cron(), asio::detached);
+    io_context_.run();
 }
 
-auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) -> boost::asio::awaitable<void>
+auto Server::listener(size_t index) -> boost::asio::awaitable<void>
 {
+    auto& acceptor = acceptors_[index];
     auto address = acceptor.local_endpoint().address().to_string();
     auto port = acceptor.local_endpoint().port();
     SPDLOG_INFO("Listening on {}:{}", address, port);
@@ -68,7 +66,7 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) ->
             asio::co_spawn(acceptor.get_executor(), do_session(std::move(socket), index), asio::detached);
         }
     } catch (const boost::system::system_error& e) {
-        if (!stopping_)
+        if (!stopping_.load(std::memory_order_relaxed))
            SPDLOG_ERROR("error occurred: {}", e.what());
 
         SPDLOG_INFO("Listener stopped. Ready to shutdown");
@@ -81,14 +79,14 @@ auto Server::do_session(asio::ip::tcp::socket socket, size_t index) -> boost::as
     co_await session.run();
 }
 
-auto Server::graceful_shutdown(boost::asio::io_context& context) -> boost::asio::awaitable<void>
+auto Server::graceful_shutdown() -> boost::asio::awaitable<void>
 {
-    asio::signal_set signals{ context, SIGINT, SIGTERM };
+    asio::signal_set signals{ io_context_, SIGINT, SIGTERM };
     co_await signals.async_wait(asio::use_awaitable);
     
+    stopping_.store(true, std::memory_order_relaxed);
+    
     SPDLOG_INFO("Shutting down...");
-
-    boost::system::error_code ec;
 
     auto stop_acceptors = [] (auto& acceptor) 
     {
@@ -97,11 +95,8 @@ auto Server::graceful_shutdown(boost::asio::io_context& context) -> boost::asio:
         acceptor.close(ec);
     };
 
-    // 只会有一个线程在这里执行，所以不需要担心竞争条件
-    stopping_ = true;
     std::ranges::for_each(acceptors_, stop_acceptors);
-
-    application_context_.stop();
+    io_context_.stop();
 }
 
 void Server::load_aof(std::string_view filepath)
@@ -146,6 +141,44 @@ void Server::load_aof(std::string_view filepath)
     }
 
     SPDLOG_INFO("AOF Loading complete! Successfully replayed {} commands.", count);
+}
+
+auto Server::cron() -> boost::asio::awaitable<void>
+{
+    auto executor = co_await asio::this_coro::executor;
+    asio::steady_timer timer{ executor };
+
+    while (true) {
+        using namespace std::chrono_literals;
+        timer.expires_after(1s);
+
+        try {
+            co_await timer.async_wait(asio::use_awaitable);
+        }
+        catch (const boost::system::system_error& e) {
+            if (e.code() != asio::error::operation_aborted)
+                SPDLOG_ERROR("Cron timer error: {}", e.what());
+            break;
+        }
+
+        auto& aof = application_context_.aof();
+        if (!aof.is_healthy() || aof.is_rewriting())
+            continue; // 如果 AOF 不健康或正在重写，等待重写完成后再检查状态
+
+        static constexpr size_t AOF_REWRITE_SIZE_THRESHOLD = 1024 * 1024 * 64; // 64 MB
+        if (aof.size() >= AOF_REWRITE_SIZE_THRESHOLD) {
+            auto last_size = aof.last_rewrite_size();
+            auto growth_rat = last_size == 0 ? 100.0 : static_cast<double>(aof.size() - last_size) / last_size;
+            
+            if (growth_rat >= 1.0) {
+                SPDLOG_INFO("AOF Auto-triggering rewrite! Growth: {:.2f}%", growth_rat * 100);
+                aof.background_rewrite(application_context_.shards());
+                last_size = aof.size();
+            }
+        }
+    }
+
+    SPDLOG_INFO("Cron task stopped.");
 }
 
 } // namespace spg::redis

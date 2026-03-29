@@ -1,13 +1,15 @@
 #include <sponge/redis/application_context.h>
 
+#include <memory>
+
 namespace spg::redis {
 
 ApplicationContext::ApplicationContext(Size count, std::string_view aof_filename)
-    : io_context_pool_{ count },
-      aof_{ aof_filename }
+  : io_context_pool_{ count },
+    aof_{ aof_filename }
 {
     shards_.reserve(count);
-    for (Size i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i)
         shards_.emplace_back(std::make_unique<DBShard>());
 }
 

@@ -5,6 +5,7 @@
 
 #include <sponge/redis/application_context.h>
 #include <sponge/redis/db_shard.h>
+#include <sponge/tag.h>
 
 #include "reply.h"
 
@@ -18,22 +19,27 @@ struct CommandContext {
 
     auto io_context(std::size_t hash) -> boost::asio::io_context&
     {
-        return application_context.io_context(hash, by_hash);
+        return application_context.io_context(hash);
     }
 
     auto io_context(std::string_view key) -> boost::asio::io_context&
     {
-        return application_context.io_context(hash_fnv_1a(key), by_hash);
+        return application_context.io_context(index(key), by_hash);
     }
 
     auto shard(std::size_t hash) -> DBShard&
     {
-        return application_context.shard(hash, by_hash);
+        return application_context.shard(hash);
     }
 
     auto shard(std::string_view key) -> DBShard&
     {
-        return application_context.shard(hash_fnv_1a(key), by_hash);
+        return application_context.shard(index(key), by_hash);
+    }
+
+    auto shards() const -> std::span<const std::unique_ptr<DBShard>>
+    {
+        return application_context.shards();
     }
 
     auto index(std::string_view key) -> std::size_t
@@ -45,6 +51,11 @@ struct CommandContext {
     void append(std::string_view command)
     {
         aof_buffer.append(command);
+    }
+
+    auto aof() -> AOF&
+    {
+        return application_context.aof();
     }
 
 private:
