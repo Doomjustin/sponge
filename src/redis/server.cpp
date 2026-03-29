@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
-#include <print>
 
 #include <sys/socket.h>
 
@@ -61,7 +60,7 @@ auto Server::listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) ->
 {
     auto address = acceptor.local_endpoint().address().to_string();
     auto port = acceptor.local_endpoint().port();
-    std::print("Listener started on {}:{}\n", address, port);
+    SPDLOG_INFO("Listening on {}:{}", address, port);
 
     try {
         while (true) {
@@ -87,7 +86,7 @@ auto Server::graceful_shutdown(boost::asio::io_context& context) -> boost::asio:
     asio::signal_set signals{ context, SIGINT, SIGTERM };
     co_await signals.async_wait(asio::use_awaitable);
     
-    SPDLOG_INFO("Shutting down...\n");
+    SPDLOG_INFO("Shutting down...");
 
     boost::system::error_code ec;
 
@@ -131,7 +130,7 @@ void Server::load_aof(std::string_view filepath)
         buffer.append(chunk.data(), file.gcount());
 
         while (!buffer.empty()) {
-            auto [commands, consumed_bytes] = resp::parse_request(buffer, application_context_.resource(0));
+            auto [commands, consumed_bytes] = resp::parse_request(buffer);
 
             if (commands.empty())
                 break; // 半包，继续读取数据

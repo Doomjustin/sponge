@@ -1,7 +1,6 @@
 #include "commands.h"
 
 #include <array>
-#include <memory_resource>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
@@ -14,8 +13,7 @@ void run_dispatch(ApplicationContext& app,
                   Reply& reply,
                   std::span<const std::string_view> cmd)
 {
-    std::pmr::monotonic_buffer_resource resource;
-    resp::Command request{ .arguments = resp::Command::Arguments{ &resource }, .raw = {} };
+    resp::Command request{ .arguments = {}, .raw = {} };
     request.arguments.insert(request.arguments.end(), cmd.begin(), cmd.end());
 
     CommandContext context{ .application_context = app, .reply = reply };

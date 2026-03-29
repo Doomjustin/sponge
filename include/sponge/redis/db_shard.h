@@ -46,12 +46,10 @@ public:
 
     class EntryHandler {
     public:
-        EntryHandler(DashTable<Entry>::Segment &segment, DashTable<Entry>::Segment::iterator it, 
-                     std::string_view key, MemoryResource *resource)
-          : segment_{ segment}, 
+        EntryHandler(DashTable<Entry>::Segment &segment, DashTable<Entry>::Segment::iterator it, std::string_view key)
+          : segment_{ segment }, 
             it_{ it }, 
-            key_{ key }, 
-            resource_{ resource } 
+            key_{ key }
         {}
 
         [[nodiscard]]
@@ -79,11 +77,11 @@ public:
         {
             Entry entry {
                 // 直接传入resource_，避免用户手动传入，减少出错的可能性
-                .value = T{ std::forward<Args>(args)..., resource_ },
+                .value = T{ std::forward<Args>(args)... },
                 .expire_at = TTLManager::PERSISTENT_INTEGRAL
             };
 
-            auto [iter, emplaced] = segment_.emplace(Key{ key_, resource_ }, std::move(entry));
+            auto [iter, emplaced] = segment_.emplace(key_, std::move(entry));
             it_ = iter;
             return std::get_if<T>(&it_->second.value);
         }
@@ -141,7 +139,7 @@ public:
             segment_.erase(it_);
             it_ = segment_.end();
 
-            auto [iter, _] = segment_.insert_or_assign(Key{ new_key, resource_ }, std::move(entry));
+            auto [iter, _] = segment_.insert_or_assign(String{ new_key }, std::move(entry));
             it_ = iter;
             return true;
         }
@@ -150,10 +148,8 @@ public:
         DashTable<Entry>::Segment& segment_;
         DashTable<Entry>::Segment::iterator it_;
         std::string_view key_;
-        MemoryResource* resource_;
     };
 
-    explicit DBShard(MemoryResource* resource);
 
     // 修改路径，内部是unique_lock，保证独占访问
     // 由于每次访问都需要判断是否过期，所以即使是只读操作也要使用modify接口，保证过期逻辑的正确性
@@ -166,7 +162,7 @@ public:
                 it = segment.end();
             }
 
-            EntryHandler handler{ segment, it, key, resource_ };
+            EntryHandler handler{ segment, it, key };
             return func(handler);
         });
     }
@@ -204,11 +200,8 @@ public:
     }
 
 private:
-    MemoryResource* resource_;
     DashTable<Entry> tables_;
     TTLManager ttl_manager_;
-
-    auto erase_if_expired(std::string_view key) -> bool;
 };
 
 } // namespace spg::redis

@@ -458,8 +458,7 @@ TEST_CASE("ListPack 非数字字符串走 str 路径", "[list_pack]")
 
 TEST_CASE("ListPack 使用自定义 pmr 资源", "[list_pack]")
 {
-    std::pmr::monotonic_buffer_resource pool{ 4096 };
-    ListPack lp{ 256, &pool };
+    ListPack lp{ 256 };
 
     lp.push_back(42);
     lp.push_back("hello");

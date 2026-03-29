@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <memory_resource>
 #include <vector>
 
 #include <boost/asio/io_context.hpp>
@@ -60,16 +59,6 @@ public:
         return io_context_pool_[id];
     }
 
-    auto resource(Size index) noexcept -> TrackingMemoryResource*
-    {
-        return resources_[index].get();
-    }
-
-    auto resource(Size index, ByHashT by_hash) noexcept -> TrackingMemoryResource*
-    {
-        return resources_[index % resources_.size()].get();
-    }
-
     [[nodiscard]]
     constexpr auto size() const noexcept -> Size
     {
@@ -81,23 +70,8 @@ public:
         return aof_;
     }
 
-    // 非线程安全，调用者必须保证线程安全
-    [[nodiscard]]
-    auto used_memory(Size index) const noexcept -> std::size_t
-    {
-        return resources_[index]->used_memory();
-    }
-
-    // 非线程安全，调用者必须保证线程安全
-    [[nodiscard]]
-    constexpr auto total_used_memory() const noexcept -> std::size_t;
-
 private:
-    using Pool = std::pmr::synchronized_pool_resource;
-
     IOContexts io_context_pool_;
-    std::vector<std::unique_ptr<Pool>> pools_;
-    std::vector<std::unique_ptr<TrackingMemoryResource>> resources_;
     std::vector<std::unique_ptr<DBShard>> shards_;
     AOF aof_;
 };

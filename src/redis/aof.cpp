@@ -3,7 +3,7 @@
 namespace spg::redis {
 
 AOF::AOF(std::string_view filename)
-    : file_{ filename },
+  : file_{ filename },
     io_context_{ 1 },
     work_guard_{ boost::asio::make_work_guard(io_context_) },
     thread_{ [this] { io_context_.run(); } }
@@ -11,7 +11,7 @@ AOF::AOF(std::string_view filename)
 
 AOF::~AOF()
 {
-    // stopping_.store(true, std::memory_order_release);
+    stopping_.store(true, std::memory_order_release);
     work_guard_.reset();
     io_context_.stop();
 
@@ -24,19 +24,19 @@ AOF::~AOF()
         SPDLOG_ERROR("Failed to sync AOF file on shutdown.");
 }
 
-void AOF::append(std::string command)
+void AOF::append(std::pmr::string command)
 {
-    // if (stopping_.load(std::memory_order_acquire))
-    //     return;
+    if (stopping_.load(std::memory_order_acquire))
+        return;
 
     auto task = [this, command = std::move(command)]() 
     {
-        // if (stopping_.load(std::memory_order_acquire))
-        //     return;
+        if (stopping_.load(std::memory_order_acquire))
+            return;
 
         while (!file_.append(std::as_bytes(std::span{command}))) {
-            // if (stopping_.load(std::memory_order_acquire))
-            //     return;
+            if (stopping_.load(std::memory_order_acquire))
+                return;
 
             if (is_healthy()) {
                 // 记录错误日志，标记文件状态为不健康

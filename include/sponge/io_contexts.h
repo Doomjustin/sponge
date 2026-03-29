@@ -41,9 +41,9 @@ public:
     auto operator[](Size index) -> Context& { return *io_contexts_[index]; }
 
 private:
-    std::vector<ContextPtr> io_contexts_;
-    std::vector<std::jthread> threads_;
-    std::list<WorkGuard> works_;
+    std::pmr::vector<ContextPtr> io_contexts_;
+    std::pmr::vector<std::jthread> threads_;
+    std::pmr::list<WorkGuard> works_;
     Size next_io_context_ = 0;
 
     void join_threads();

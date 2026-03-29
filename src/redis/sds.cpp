@@ -11,6 +11,10 @@
 
 namespace spg::redis {
 
+SDS::SDS()
+    : resource_{ std::pmr::get_default_resource() }
+{}
+
 SDS::SDS(gsl::not_null<std::pmr::memory_resource*> resource) 
     : resource_{ resource } 
 {}

@@ -1,8 +1,6 @@
 #ifndef SPONGE_REDIS_SESSION_H
 #define SPONGE_REDIS_SESSION_H
 
-#include <array>
-
 #include <boost/asio.hpp>
 
 #include <sponge/redis/application_context.h>

@@ -1,6 +1,8 @@
 #ifndef SPONGE_REDIS_COMMAND_CONTEXT_H
 #define SPONGE_REDIS_COMMAND_CONTEXT_H
 
+#include <string>
+
 #include <sponge/redis/application_context.h>
 #include <sponge/redis/db_shard.h>
 
@@ -11,7 +13,7 @@ namespace spg::redis {
 struct CommandContext {
     ApplicationContext& application_context;
     Reply& reply;
-    std::string aof_buffer;
+    std::pmr::string aof_buffer;
     bool is_aof_loading = false; // 标记当前是否处于 AOF 加载阶段，避免在加载时写入 AOF
 
     auto io_context(std::size_t hash) -> boost::asio::io_context&
@@ -32,16 +34,6 @@ struct CommandContext {
     auto shard(std::string_view key) -> DBShard&
     {
         return application_context.shard(hash_fnv_1a(key), by_hash);
-    }
-
-    auto resource(std::size_t hash) -> DBShard::MemoryResource*
-    {
-        return application_context.resource(hash);
-    }
-
-    auto resource(std::string_view key) -> DBShard::MemoryResource*
-    {
-        return application_context.resource(hash_fnv_1a(key), by_hash);
     }
 
     auto index(std::string_view key) -> std::size_t

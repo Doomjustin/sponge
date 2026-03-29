@@ -1,7 +1,5 @@
 #include "session.h"
 
-#include <print>
-
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 
@@ -41,7 +39,7 @@ auto Session::run() -> boost::asio::awaitable<void>
             while (buffer.size() > 0) {
                 std::string_view data{ static_cast<const char*>(buffer.data().data()), buffer.size() };
 
-                auto [commands, consumed_bytes] = resp::parse_request(data, context_.resource(index_));
+                auto [commands, consumed_bytes] = resp::parse_request(data);
 
                 if (commands.empty())
                     break; // 半包，继续等待数据
@@ -55,7 +53,7 @@ auto Session::run() -> boost::asio::awaitable<void>
             // 批量写入 AOF，减少磁盘 I/O 次数
             if (!context.aof_buffer.empty()) {
                 context_.aof().append(std::move(context.aof_buffer));
-                context.aof_buffer = std::string{};
+                context.aof_buffer = std::pmr::string{};
                 context.aof_buffer.reserve(BUFFER_SIZE);
             }
 

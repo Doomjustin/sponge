@@ -60,14 +60,32 @@ private:
 	bool size_mismatch_{ false };
 };
 
+// RAII helper：将 CountingResource 设为默认 PMR 资源，析构时还原。
+struct ResourceGuard {
+	explicit ResourceGuard(CountingResource& res)
+	  : prev_{ std::pmr::set_default_resource(&res) }
+	{}
+
+	~ResourceGuard()
+	{
+		std::pmr::set_default_resource(prev_);
+	}
+
+	ResourceGuard(const ResourceGuard&) = delete;
+	auto operator=(const ResourceGuard&) -> ResourceGuard& = delete;
+
+	std::pmr::memory_resource* prev_;
+};
+
 } // namespace
 
 TEST_CASE("String allocates and frees memory", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "hello", &resource };
+		spg::redis::String str{ "hello" };
 		(void)str;
 		REQUIRE(resource.allocations() == 1);
 		REQUIRE(resource.deallocations() == 0);
@@ -82,9 +100,10 @@ TEST_CASE("String allocates and frees memory", "[redis][string]")
 TEST_CASE("String handles empty string", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "", &resource };
+		spg::redis::String str{ "" };
 		(void)str;
 	}
 
@@ -97,9 +116,10 @@ TEST_CASE("String handles empty string", "[redis][string]")
 TEST_CASE("String move constructor transfers ownership", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String first{ "abc", &resource };
+		spg::redis::String first{ "abc" };
 		spg::redis::String second{ std::move(first) };
 		(void)second;
 	}
@@ -113,10 +133,11 @@ TEST_CASE("String move constructor transfers ownership", "[redis][string]")
 TEST_CASE("String move assignment releases old allocation", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String first{ "first", &resource };
-		spg::redis::String second{ "second", &resource };
+		spg::redis::String first{ "first" };
+		spg::redis::String second{ "second" };
 
 		REQUIRE(resource.allocations() == 2);
 		REQUIRE(resource.deallocations() == 0);
@@ -136,9 +157,10 @@ TEST_CASE("String move assignment releases old allocation", "[redis][string]")
 TEST_CASE("String self move assignment is safe", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "self", &resource };
+		spg::redis::String str{ "self" };
 		str = std::move(str);
 	}
 
@@ -151,7 +173,8 @@ TEST_CASE("String self move assignment is safe", "[redis][string]")
 TEST_CASE("String default constructor creates empty string", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{};
 
 	REQUIRE(str.size() == 0);
 	REQUIRE(str.capacity() == 0);
@@ -163,7 +186,8 @@ TEST_CASE("String default constructor creates empty string", "[redis][string]")
 TEST_CASE("String exposes view indexing and iterators", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "hello", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "hello" };
 
 	REQUIRE(str.size() == 5);
 	REQUIRE(str.capacity() == 5);
@@ -182,7 +206,8 @@ TEST_CASE("String exposes view indexing and iterators", "[redis][string]")
 TEST_CASE("String copy constructor performs deep copy", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String original{ "hello", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String original{ "hello" };
 	spg::redis::String copy{ original };
 
 	REQUIRE(resource.allocations() == 2);
@@ -197,8 +222,9 @@ TEST_CASE("String copy constructor performs deep copy", "[redis][string]")
 TEST_CASE("String copy assignment releases old storage and deep copies", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String original{ "hello", &resource };
-	spg::redis::String target{ "x", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String original{ "hello" };
+	spg::redis::String target{ "x" };
 
 	REQUIRE(resource.allocations() == 2);
 	REQUIRE(resource.deallocations() == 0);
@@ -216,34 +242,11 @@ TEST_CASE("String copy assignment releases old storage and deep copies", "[redis
 	REQUIRE(original.view() == "hello");
 }
 
-TEST_CASE("String copy assignment between different resources keeps target resource", "[redis][string]")
-{
-	CountingResource src_resource{};
-	CountingResource dst_resource{};
-
-	{
-		spg::redis::String original{ "hello", &src_resource };
-		spg::redis::String target{ "x", &dst_resource };
-
-		target = original;
-
-		REQUIRE(target.view() == "hello");
-		REQUIRE(src_resource.allocations() == 1);
-		REQUIRE(src_resource.deallocations() == 0);
-		REQUIRE(dst_resource.allocations() == 2);
-		REQUIRE(dst_resource.deallocations() == 1);
-	}
-
-	REQUIRE(src_resource.outstanding() == 0);
-	REQUIRE(dst_resource.outstanding() == 0);
-	REQUIRE_FALSE(src_resource.has_size_mismatch());
-	REQUIRE_FALSE(dst_resource.has_size_mismatch());
-}
-
 TEST_CASE("String append grows storage and preserves content", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "ab", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "ab" };
 
 	str.append("c");
 
@@ -259,7 +262,8 @@ TEST_CASE("String append grows storage and preserves content", "[redis][string]"
 TEST_CASE("String append can reuse available space", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "ab", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "ab" };
 
 	str.append("c");
 	auto allocations_after_growth = resource.allocations();
@@ -278,7 +282,8 @@ TEST_CASE("String append can reuse available space", "[redis][string]")
 TEST_CASE("String append empty string keeps content unchanged", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "hello", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "hello" };
 
 	auto allocations_before = resource.allocations();
 	auto deallocations_before = resource.deallocations();
@@ -298,7 +303,8 @@ TEST_CASE("String append empty string keeps content unchanged", "[redis][string]
 TEST_CASE("String supports multiple consecutive appends", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{};
 
 	str.append("ab");
 	str.append("cd");
@@ -315,8 +321,9 @@ TEST_CASE("String supports multiple consecutive appends", "[redis][string]")
 TEST_CASE("String append crossing 255 capacity preserves content", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 	std::string initial(255, 'a');
-	spg::redis::String str{ initial, &resource };
+	spg::redis::String str{ initial };
 
 	str.append("b");
 
@@ -331,7 +338,8 @@ TEST_CASE("String append crossing 255 capacity preserves content", "[redis][stri
 TEST_CASE("String reserve is no-op when capacity is sufficient", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "hello", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "hello" };
 
 	const auto allocs_before = resource.allocations();
 	const auto cap_before = str.capacity();
@@ -348,9 +356,10 @@ TEST_CASE("String reserve is no-op when capacity is sufficient", "[redis][string
 TEST_CASE("String reserve expands capacity and preserves content", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "hello", &resource };
+		spg::redis::String str{ "hello" };
 		str.reserve(20);
 
 		REQUIRE(str.capacity() >= 20);
@@ -368,9 +377,10 @@ TEST_CASE("String reserve expands capacity and preserves content", "[redis][stri
 TEST_CASE("String greedy reserve doubles capacity below prealloc limit", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "hi", &resource };
+		spg::redis::String str{ "hi" };
 		str.reserve(10, spg::redis::greedy);
 
 		REQUIRE(str.capacity() == 20);
@@ -385,9 +395,10 @@ TEST_CASE("String greedy reserve doubles capacity below prealloc limit", "[redis
 TEST_CASE("String resize extends length with zero bytes", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "ab", &resource };
+		spg::redis::String str{ "ab" };
 		str.resize(5);
 
 		REQUIRE(str.size() == 5);
@@ -407,7 +418,8 @@ TEST_CASE("String resize extends length with zero bytes", "[redis][string]")
 TEST_CASE("String resize can shrink without reallocation", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "hello", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "hello" };
 
 	const auto allocs_before = resource.allocations();
 	const auto deallocs_before = resource.deallocations();
@@ -424,7 +436,8 @@ TEST_CASE("String resize can shrink without reallocation", "[redis][string]")
 TEST_CASE("String clear resets size without deallocating buffer", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String str{ "hello", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String str{ "hello" };
 
 	const auto allocs_before = resource.allocations();
 	const auto deallocs_before = resource.deallocations();
@@ -445,9 +458,10 @@ TEST_CASE("String clear resets size without deallocating buffer", "[redis][strin
 TEST_CASE("String clear allows reuse of buffer without reallocating", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ &resource };
+		spg::redis::String str{};
 		str.reserve(20);
 
 		const auto allocs_after_reserve = resource.allocations();
@@ -469,9 +483,10 @@ TEST_CASE("String clear allows reuse of buffer without reallocating", "[redis][s
 TEST_CASE("String assign replaces content within existing capacity", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "hello", &resource };
+		spg::redis::String str{ "hello" };
 		str.reserve(20);
 
 		const auto allocs_before = resource.allocations();
@@ -490,9 +505,10 @@ TEST_CASE("String assign replaces content within existing capacity", "[redis][st
 TEST_CASE("String assign reallocates when content exceeds capacity", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "hi", &resource };
+		spg::redis::String str{ "hi" };
 		str.assign("much longer string");
 
 		REQUIRE(str.view() == "much longer string");
@@ -509,9 +525,10 @@ TEST_CASE("String assign reallocates when content exceeds capacity", "[redis][st
 TEST_CASE("String self copy assignment is safe", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String str{ "hello", &resource };
+		spg::redis::String str{ "hello" };
 		const auto* const ptr_before = str.begin();
 
 		str = str;
@@ -529,10 +546,11 @@ TEST_CASE("String self copy assignment is safe", "[redis][string]")
 TEST_CASE("string_cast converts signed positive and zero", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		auto zero = spg::redis::string_cast(0, &resource);
-		auto pos = spg::redis::string_cast(12345, &resource);
+		auto zero = spg::redis::string_cast(0);
+		auto pos = spg::redis::string_cast(12345);
 
 		REQUIRE(zero.view() == "0");
 		REQUIRE(pos.view() == "12345");
@@ -545,9 +563,10 @@ TEST_CASE("string_cast converts signed positive and zero", "[redis][string]")
 TEST_CASE("string_cast converts signed negative values", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		auto neg = spg::redis::string_cast(-9876, &resource);
+		auto neg = spg::redis::string_cast(-9876);
 		REQUIRE(neg.view() == "-9876");
 	}
 
@@ -558,12 +577,11 @@ TEST_CASE("string_cast converts signed negative values", "[redis][string]")
 TEST_CASE("string_cast handles signed limits", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		auto min_v = spg::redis::string_cast(std::numeric_limits<std::int64_t>::min(),
-			&resource);
-		auto max_v = spg::redis::string_cast(std::numeric_limits<std::int64_t>::max(),
-			&resource);
+		auto min_v = spg::redis::string_cast(std::numeric_limits<std::int64_t>::min());
+		auto max_v = spg::redis::string_cast(std::numeric_limits<std::int64_t>::max());
 
 		REQUIRE(min_v.view() == "-9223372036854775808");
 		REQUIRE(max_v.view() == "9223372036854775807");
@@ -576,11 +594,11 @@ TEST_CASE("string_cast handles signed limits", "[redis][string]")
 TEST_CASE("string_cast handles unsigned values and limits", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		auto u = spg::redis::string_cast(42u, &resource);
-		auto umax = spg::redis::string_cast(std::numeric_limits<std::uint64_t>::max(),
-			&resource);
+		auto u = spg::redis::string_cast(42u);
+		auto umax = spg::redis::string_cast(std::numeric_limits<std::uint64_t>::max());
 
 		REQUIRE(u.view() == "42");
 		REQUIRE(umax.view() == "18446744073709551615");
@@ -590,13 +608,13 @@ TEST_CASE("string_cast handles unsigned values and limits", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("format uses provided memory resource", "[redis][string]")
+TEST_CASE("format allocates via default resource", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		auto str = spg::redis::format(
-			&resource, "user:{} score:{}", 7, 99);
+		auto str = spg::redis::format("user:{} score:{}", 7, 99);
 
 		REQUIRE(str.view() == "user:7 score:99");
 		REQUIRE(resource.allocations() == 1);
@@ -613,11 +631,11 @@ TEST_CASE("format uses provided memory resource", "[redis][string]")
 TEST_CASE("format can format String argument via format_as", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 
 	{
-		spg::redis::String name{ "alice", &resource };
-		auto str = spg::redis::format(
-			&resource, "name={}", name);
+		spg::redis::String name{ "alice" };
+		auto str = spg::redis::format("name={}", name);
 
 		REQUIRE(str.view() == "name=alice");
 		REQUIRE(resource.allocations() == 2);
@@ -634,9 +652,10 @@ TEST_CASE("format can format String argument via format_as", "[redis][string]")
 TEST_CASE("format supports escaped braces and mixed argument types", "[redis][string]")
 {
 	CountingResource resource{};
-	spg::redis::String user{ "bob", &resource };
+	ResourceGuard guard{ resource };
+	spg::redis::String user{ "bob" };
 
-	auto out = spg::redis::format(&resource, "{{user}}={} active={} score={}", user, true, 42);
+	auto out = spg::redis::format("{{user}}={} active={} score={}", user, true, 42);
 
 	REQUIRE(out.view() == "{user}=bob active=true score=42");
 	REQUIRE(resource.allocations() >= 2);
@@ -646,10 +665,11 @@ TEST_CASE("format supports escaped braces and mixed argument types", "[redis][st
 TEST_CASE("format handles long content growth", "[redis][string]")
 {
 	CountingResource resource{};
+	ResourceGuard guard{ resource };
 	std::string payload(600, 'x');
 
 	{
-		auto out = spg::redis::format(&resource, "prefix:{}:suffix", payload);
+		auto out = spg::redis::format("prefix:{}:suffix", payload);
 
 		REQUIRE(out.size() == payload.size() + 14);
 		REQUIRE(out.view().substr(0, 7) == "prefix:");
@@ -658,22 +678,5 @@ TEST_CASE("format handles long content growth", "[redis][string]")
 
 	REQUIRE(resource.outstanding() == 0);
 	REQUIRE_FALSE(resource.has_size_mismatch());
-}
-
-TEST_CASE("string_cast default overload converts integral values", "[redis][string]")
-{
-	auto a = spg::redis::string_cast(12345);
-	auto b = spg::redis::string_cast(-808);
-
-	REQUIRE(a.view() == "12345");
-	REQUIRE(b.view() == "-808");
-}
-
-TEST_CASE("format default overload works with String via format_as", "[redis][string]")
-{
-	spg::redis::String level{ "info" };
-	auto line = spg::redis::format("[{}] code={}", level, 200);
-
-	REQUIRE(line.view() == "[info] code=200");
 }
 

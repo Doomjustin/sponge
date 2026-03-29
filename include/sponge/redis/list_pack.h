@@ -2,8 +2,8 @@
 #define SPONGE_REDIS_LIST_PACK_H
 
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <memory_resource>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -29,11 +29,8 @@ class ListPack {
 public:
     class Iterator;
     class ReverseIterator;
-    using Size = size_t;
 
-    ListPack(Size capacity, std::pmr::memory_resource* resource);
-
-    explicit ListPack(Size capacity);
+    explicit ListPack(size_t capacity);
 
     void push_back(std::string_view view);
 
@@ -76,7 +73,7 @@ public:
     void clear() noexcept;
 
     [[nodiscard]]
-    auto size() const noexcept -> Size
+    auto size() const noexcept -> size_t
     {
         return num_elements();
     }
@@ -88,13 +85,13 @@ public:
     }
 
     [[nodiscard]]
-    constexpr auto byte_size() const noexcept -> Size
+    constexpr auto byte_size() const noexcept -> size_t
     {
         return buffer_.size();
     }
 
     [[nodiscard]]
-    constexpr auto capacity() const noexcept -> Size
+    constexpr auto capacity() const noexcept -> size_t
     {
         return buffer_.capacity();
     }
@@ -118,14 +115,12 @@ public:
     auto rend() noexcept -> ReverseIterator;
 
 private:
-    static constexpr Size HEADER_SIZE = 6;
+    static constexpr size_t HEADER_SIZE = 6;
     static constexpr std::byte END_OF_BUFFER = static_cast<std::byte>(0b11111111);
     using TotalBytes = uint32_t;
     using NumElements = uint16_t;
-    using Container = std::pmr::vector<std::byte>;
 
-    std::pmr::memory_resource* resource_;
-    Container buffer_{ resource_ };
+    std::pmr::vector<std::byte> buffer_{};
 
     void update_total_bytes() noexcept;
     
@@ -138,7 +133,7 @@ private:
     [[nodiscard]]
     auto num_elements() const noexcept -> NumElements;
 
-    void increase_capacity(Size increment);
+    void increase_capacity(size_t increment);
 };
 
 
@@ -146,7 +141,7 @@ class ListPack::Iterator {
     friend class ListPack;
 
 public:
-    using BufferIterator = Container::iterator;
+    using BufferIterator = std::pmr::vector<std::byte>::iterator;
     using Element = std::variant<int64_t, std::string_view>;
 
     explicit Iterator(BufferIterator byte) 
@@ -181,7 +176,7 @@ private:
 
 class ListPack::ReverseIterator {
 public:
-    using BufferIterator = Container::iterator;
+    using BufferIterator = std::pmr::vector<std::byte>::iterator;
     using Element = std::variant<int64_t, std::string_view>;
 
     explicit ReverseIterator(BufferIterator byte) 

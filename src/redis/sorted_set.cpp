@@ -30,7 +30,7 @@ auto SortedSet::score(Member member) -> std::optional<Score>
     }
 
     auto& node = std::get<Node>(backend_);
-    auto it = node.dict.find(String{ member, resource_ });
+    auto it = node.dict.find(member);
     if (it != node.dict.end()) {
         return it->second;
     }
@@ -60,14 +60,14 @@ auto SortedSet::add_to_skiplist(Score score, Member member) -> bool
 
 void SortedSet::upgrade() 
 {
-    Node new_node{ resource_ };
+    Node new_node{};
     auto& listpack = std::get<ListPack>(backend_);
 
     auto it = listpack.begin();
     while (it != listpack.end()) {
         auto member = extract(it++, as_member);
         auto score = extract(it++, as_score);
-        auto [iter, _] = new_node.dict.emplace(String{ member, resource_ }, score);
+        auto [iter, _] = new_node.dict.emplace(member, score);
         new_node.skip_list.insert(score, iter->first);
     }
 

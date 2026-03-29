@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include <boost/asio.hpp>
 
@@ -23,10 +22,10 @@ private:
     static constexpr std::string_view AOF_FILENAME = "/tmp/sponge/redis.aof";
 
     ApplicationContext application_context_;
-    std::string address_;
-    std::string port_;
+    std::pmr::string address_;
+    std::pmr::string port_;
     std::atomic<bool> stopping_ = false;
-    std::vector<boost::asio::ip::tcp::acceptor> acceptors_;
+    std::pmr::vector<boost::asio::ip::tcp::acceptor> acceptors_;
 
     auto listener(boost::asio::ip::tcp::acceptor& acceptor, size_t index) -> boost::asio::awaitable<void>;
 

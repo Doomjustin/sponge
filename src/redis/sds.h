@@ -16,6 +16,7 @@ namespace spg::redis {
 
 class SDS {
 public:
+    SDS();
     explicit SDS(gsl::not_null<std::pmr::memory_resource*> resource);
 
     auto create(std::string_view str) noexcept -> char*;
@@ -39,7 +40,6 @@ public:
     static auto available(gsl::not_null<char*> sds) noexcept -> size_t;
 
 private:
-    using Allocator = std::pmr::polymorphic_allocator<std::byte>;
     using Type8 = uint8_t;
     using Type16 = uint16_t;
     using Type32 = uint32_t;

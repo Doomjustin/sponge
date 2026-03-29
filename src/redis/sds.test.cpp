@@ -61,12 +61,30 @@ private:
     bool size_mismatch_{ false };
 };
 
+// RAII helper：将 CountingResource 设为默认 PMR 资源，析构时还原。
+struct ResourceGuard {
+    explicit ResourceGuard(CountingResource& res)
+      : prev_{ std::pmr::set_default_resource(&res) }
+    {}
+
+    ~ResourceGuard()
+    {
+        std::pmr::set_default_resource(prev_);
+    }
+
+    ResourceGuard(const ResourceGuard&) = delete;
+    auto operator=(const ResourceGuard&) -> ResourceGuard& = delete;
+
+    std::pmr::memory_resource* prev_;
+};
+
 } // namespace
 
 TEST_CASE("SDS create stores string and null terminator", "[sds][manager]")
 {
     CountingResource resource{};
-    SDS manager{ &resource };
+    ResourceGuard guard{ resource };
+    SDS manager{};
 
     constexpr std::string_view text{ "hello" };
     auto* sds = manager.create(text);
@@ -84,7 +102,8 @@ TEST_CASE("SDS create stores string and null terminator", "[sds][manager]")
 TEST_CASE("SDS create with explicit capacity keeps content", "[sds][manager]")
 {
     CountingResource resource{};
-    SDS manager{ &resource };
+    ResourceGuard guard{ resource };
+    SDS manager{};
 
     constexpr std::string_view text{ "abc" };
     auto* sds = manager.create(text, 32);
@@ -100,7 +119,8 @@ TEST_CASE("SDS create with explicit capacity keeps content", "[sds][manager]")
 TEST_CASE("SDS chooses Type8 below 256 capacity", "[sds][manager]")
 {
     CountingResource resource{};
-    SDS manager{ &resource };
+    ResourceGuard guard{ resource };
+    SDS manager{};
 
     auto* sds = manager.create("x", 255);
 
@@ -113,7 +133,8 @@ TEST_CASE("SDS chooses Type8 below 256 capacity", "[sds][manager]")
 TEST_CASE("SDS chooses Type16 at 256 capacity", "[sds][manager]")
 {
     CountingResource resource{};
-    SDS manager{ &resource };
+    ResourceGuard guard{ resource };
+    SDS manager{};
 
     auto* sds = manager.create("x", 256);
 

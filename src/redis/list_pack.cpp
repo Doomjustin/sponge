@@ -453,9 +453,7 @@ auto encode(Iterator iter, int64_t value) -> Iterator
 
 // ------------------------- ListPack 实现 --------------------------
 
-ListPack::ListPack(Size capacity, std::pmr::memory_resource* resource) 
-  : resource_{ resource }, 
-    buffer_{ resource } 
+ListPack::ListPack(size_t capacity) 
 {
     buffer_.reserve(std::max(capacity, HEADER_SIZE + 1));
     buffer_.resize(HEADER_SIZE + 1); // header 6 字节 + EOF 1 字节
@@ -463,10 +461,6 @@ ListPack::ListPack(Size capacity, std::pmr::memory_resource* resource)
     buffer_.back() = END_OF_BUFFER;
     update_total_bytes();
 }
-
-ListPack::ListPack(Size capacity)
-  : ListPack{ capacity, std::pmr::get_default_resource() }
-{}
 
 void ListPack::push_back(std::string_view view)
 {
@@ -642,7 +636,7 @@ auto ListPack::num_elements() const noexcept -> NumElements
     return value;
 }
 
-void ListPack::increase_capacity(Size increment)
+void ListPack::increase_capacity(size_t increment)
 {
     auto new_capacity = buffer_.capacity() + increment;
     // 相信标准库的扩容策略，暂时不自己计算新容量了

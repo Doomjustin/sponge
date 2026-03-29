@@ -19,10 +19,6 @@ public:
     using Score = double;
     using Member = std::string_view;
 
-    explicit SortedSet(std::pmr::memory_resource* resource)
-      : resource_{ resource }, backend_{ std::in_place_type<ListPack>, MAX_LISTPACK_ENTRIES, resource }
-    {}
-
     auto add(Score score, Member member) -> bool;
 
     auto score(Member member) -> std::optional<Score>;
@@ -36,11 +32,6 @@ private:
     struct Node {
         Dict dict;
         SkipList skip_list;
-
-        explicit Node(std::pmr::memory_resource* resource)
-          : dict{ Allocator(resource) }, 
-            skip_list{ resource } 
-        {}
     };
 
     struct AsMemberT {};
@@ -51,8 +42,7 @@ private:
     static constexpr size_t MAX_LISTPACK_ENTRIES = 128;
     static constexpr size_t MAX_LISTPACK_BYTES = 64;
 
-    std::pmr::memory_resource* resource_;
-    std::variant<ListPack, Node> backend_;
+    std::variant<ListPack, Node> backend_{ std::in_place_type<ListPack>, MAX_LISTPACK_ENTRIES };
 
     auto add_to_listpack(Score score, Member member) -> bool;
 

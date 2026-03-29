@@ -18,13 +18,9 @@ struct resp {
     struct ParseResult {
         Commands commands;
         std::size_t consumed_bytes = 0;
-
-        ParseResult(std::pmr::memory_resource* resource)
-          : commands{ resource }
-        {}
     };
 
-    static auto parse_request(std::string_view buffer, std::pmr::memory_resource* resource) -> ParseResult;
+    static auto parse_request(std::string_view buffer) -> ParseResult;
 };
 
 } // namespace spg::redis

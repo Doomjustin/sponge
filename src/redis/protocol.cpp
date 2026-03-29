@@ -57,9 +57,9 @@ auto parse_bulk_string(const char* begin, const char* const end) -> BulkParseRes
 }
 
 // expected: *3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n
-auto parse_array_command(const char* begin, const char* const end, std::pmr::memory_resource* resource) -> resp::Command::Arguments
+auto parse_array_command(const char* begin, const char* const end) -> resp::Command::Arguments
 {
-    resp::Command::Arguments args{ resource };
+    resp::Command::Arguments args;
 
     assert(*begin == '*');
 
@@ -87,9 +87,9 @@ auto parse_array_command(const char* begin, const char* const end, std::pmr::mem
     return args;
 }
 
-auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* resource) -> ParseResult
+auto resp::parse_request(std::string_view buffer) -> ParseResult
 {
-    ParseResult result{ resource };
+    ParseResult result{};
     const auto* ptr = buffer.data();
     const auto* const end = buffer.data() + buffer.size();
 
@@ -97,7 +97,7 @@ auto resp::parse_request(std::string_view buffer, std::pmr::memory_resource* res
         const auto* raw_start = ptr;
 
         if (*ptr == '*') {
-            auto command = parse_array_command(ptr, end, resource);
+            auto command = parse_array_command(ptr, end);
 
             if (command.empty())
                 break;

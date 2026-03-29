@@ -2,6 +2,7 @@
 #define SPONGE_REDIS_AOF_H
 
 #include <atomic>
+#include <string>
 #include <thread>
 
 #include <boost/asio.hpp>
@@ -23,7 +24,7 @@ public:
 
     ~AOF();
 
-    void append(std::string command);
+    void append(std::pmr::string command);
 
     auto is_healthy() const -> bool
     {
@@ -36,7 +37,7 @@ private:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
     std::thread thread_;
     std::atomic<bool> healthy_{ true };
-    // std::atomic<bool> stopping_{ false };
+    std::atomic<bool> stopping_{ false };
 };
 
 } // namespace spg::redis
