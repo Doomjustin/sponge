@@ -32,9 +32,20 @@ spg_add_module(http http
         ctre::ctre
 )
 
+
+
 add_executable(sponge.redis-server redis_server.cpp)
 target_compile_features(sponge.redis-server PRIVATE cxx_std_23)
 target_link_libraries(sponge.redis-server PRIVATE sponge::redis)
+
+find_library(JEMALLOC_LIB jemalloc)
+
+if(JEMALLOC_LIB)
+    message(STATUS "Found jemalloc: ${JEMALLOC_LIB}, using it as default allocator!")
+    target_link_libraries(sponge.redis-server PRIVATE ${JEMALLOC_LIB})
+else()
+    message(WARNING "jemalloc not found, falling back to glibc allocator.")
+endif()
 
 add_executable(sponge.http-server http_server.cpp)
 target_compile_features(sponge.http-server PRIVATE cxx_std_23)

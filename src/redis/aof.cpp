@@ -171,7 +171,7 @@ void AOF::reset()
         fs::rename(file_.path(), flushed);
         
         file_.reopen(file_.path());
-        // fs::remove(flushed);
+        fs::remove(flushed);
         last_rewrite_size_.store(0, std::memory_order_relaxed);
 
         healthy_.store(true, std::memory_order_relaxed);
