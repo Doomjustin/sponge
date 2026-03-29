@@ -37,5 +37,11 @@ if (${PROJECT_NAME}_BUILD_TESTS)
    find_package(Catch2 CONFIG REQUIRED)
 endif()
 
+
+add_compile_definitions(
+    BOOST_ASIO_HAS_IO_URING=1
+    BOOST_ASIO_DISABLE_EPOLL=1
+)
+
 add_subdirectory(src)
 add_subdirectory(benchmark)

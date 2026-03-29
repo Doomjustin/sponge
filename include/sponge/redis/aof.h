@@ -62,6 +62,7 @@ private:
     std::thread thread_;
     std::atomic<bool> healthy_{ true };
     std::atomic<bool> stopping_{ false };
+    
     std::atomic<bool> is_rewriting_{ false };
     std::pmr::string rewrite_buffer_;
     std::atomic<size_t> last_rewrite_size_{ 0 };

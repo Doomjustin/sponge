@@ -139,8 +139,8 @@ void commands::dispatch(CommandContext& context, const resp::Command& cmd)
             return;
         }
         
-        // if (it->type == Type::Write && !context.is_aof_loading)
-        //     context.append(cmd.raw);
+        if (it->type == Type::Write && !context.is_aof_loading)
+            context.append(cmd.raw);
         
         std::span<const std::string_view> args{ arguments.data() + 1, arguments.size() - 1 };
         it->handler(context, args);

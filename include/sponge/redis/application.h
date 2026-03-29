@@ -23,8 +23,7 @@ public:
 
 private:
     std::pmr::memory_resource* default_resource_ = std::pmr::get_default_resource();
-    std::pmr::synchronized_pool_resource pool_;
-    TrackingMemoryResource resource_{ &pool_ };
+    TrackingMemoryResource resource_{ std::pmr::new_delete_resource() };
 };
 
 } // namespace spg::redis

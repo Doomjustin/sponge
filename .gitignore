@@ -44,6 +44,7 @@ Makefile.in
 # build
 build*/
 cmake-build*/
+benchmark-results/
 out/
 
 # py

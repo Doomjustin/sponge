@@ -4,8 +4,8 @@ namespace spg::redis {
 
 auto TTLManager::ttl(std::int64_t expire_at) -> std::optional<int64_t>
 {
-    if (expire_at == PERSISTENT_INTEGRAL)
-        return PERSISTENT_INTEGRAL;
+    if (expire_at == PERSISTENT)
+        return PERSISTENT;
 
     auto current = now();
 
@@ -34,11 +34,11 @@ auto TTLManager::expire_at(Milliseconds ttl) noexcept -> TimePoint
 auto TTLManager::expire_at(int64_t ttl_ms) noexcept -> std::int64_t
 {
     if (ttl_ms < 0)
-        return PERSISTENT_INTEGRAL; // 负数表示持久化
+        return PERSISTENT; // 负数表示持久化
 
     auto expire_at = now() + ttl_ms;
     if (expire_at < 0) // 防止溢出
-        return PERSISTENT_INTEGRAL;
+        return PERSISTENT;
     
     return expire_at;
 }

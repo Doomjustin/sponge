@@ -12,8 +12,7 @@ public:
     using TimePoint = Clock::time_point;
     using Milliseconds = std::chrono::milliseconds;
     static constexpr TimePoint PERSISTENT_TIME_POINT = TimePoint::max();
-    static constexpr std::int64_t PERSISTENT_INTEGRAL = -1;
-    static constexpr Milliseconds PERSISTENT_DURATION = Milliseconds{ -1 };
+    static constexpr std::int64_t PERSISTENT = -1;
 
     static auto now() -> std::int64_t
     {
@@ -29,7 +28,7 @@ public:
 
     static constexpr auto is_persist(std::int64_t expire_at) noexcept -> bool
     {
-        return expire_at == PERSISTENT_INTEGRAL;
+        return expire_at == PERSISTENT;
     }
 
     static auto is_expired(TimePoint expire_at) noexcept -> bool

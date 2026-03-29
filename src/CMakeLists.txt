@@ -2,6 +2,7 @@ spg_add_module(common common
     PUBLIC
         Microsoft.GSL::GSL
         Boost::asio
+        PkgConfig::LIBURING
 )
 
 spg_add_module(redis redis
@@ -10,8 +11,9 @@ spg_add_module(redis redis
         fmt::fmt
         Microsoft.GSL::GSL
         Boost::unordered
-        Boost::asio
         Boost::beast
+        Boost::asio
+        PkgConfig::LIBURING
 )
 
 spg_add_module(leveldb leveldb
@@ -23,15 +25,15 @@ spg_add_module(leveldb leveldb
 
 spg_add_module(http http
     PUBLIC
+        Microsoft.GSL::GSL
         fmt::fmt
         spdlog::spdlog
-        Microsoft.GSL::GSL
         Boost::asio
         Boost::beast
         glaze::glaze
         ctre::ctre
+        PkgConfig::LIBURING
 )
-
 
 
 add_executable(sponge.redis-server redis_server.cpp)

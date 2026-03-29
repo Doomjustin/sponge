@@ -28,6 +28,48 @@ void encode_request(std::pmr::string& buffer, std::initializer_list<std::string_
         fmt::format_to(std::back_inserter(buffer), "${}\r\n{}\r\n", arg.size(), arg);
 }
 
+void handle_chunk(const DBShard::LockedReadView& chunk, std::pmr::string& buffer)
+{
+    for (const auto& [key, entry] : chunk) {
+        if (TTLManager::is_expired(entry.expire_at))
+            continue;
+
+        if (std::holds_alternative<DBShard::String>(entry.value)) {
+            auto ttl_opt = TTLManager::ttl(entry.expire_at);
+            if (ttl_opt) {
+                auto ttl = *ttl_opt;
+                auto value = std::get<DBShard::String>(entry.value);
+
+                if (ttl != TTLManager::PERSISTENT)
+                    encode_request(buffer, { "SET", key, value, "EX", fmt::format("{}", ttl) });
+                else
+                    encode_request(buffer, { "SET", key, value });
+            }
+        }
+        else if (std::holds_alternative<DBShard::Integral>(entry.value)) {
+            auto ttl_opt = TTLManager::ttl(entry.expire_at);
+            if (ttl_opt) {
+                auto ttl = *ttl_opt;
+                auto value = std::get<DBShard::Integral>(entry.value);
+                if (ttl != TTLManager::PERSISTENT)
+                    encode_request(buffer, { "SET", key, fmt::format("{} EX {}", value, ttl) });
+                else
+                    encode_request(buffer, { "SET", key, fmt::format("{}", value) });
+            }
+        }
+        else if (std::holds_alternative<DBShard::ZSet>(entry.value)) {
+            auto ttl = TTLManager::ttl(entry.expire_at);
+            if (ttl) {
+                auto& zset = std::get<DBShard::ZSet>(entry.value);
+                // TODO: 暂时不支持遍历
+                // for (const auto& [member, score] : zset) {
+                //     encode_request(buffer, { "ZADD", key, fmt::format("{}", score), member });
+                // }
+            }
+        }
+    }
+}
+
 void dump_shards_to_file(std::span<const std::unique_ptr<DBShard>> shards, const std::filesystem::path& path) 
 {
     StdWritableFile file{ path };
@@ -35,41 +77,12 @@ void dump_shards_to_file(std::span<const std::unique_ptr<DBShard>> shards, const
     buffer.reserve(1024 * 1024 * 8);
 
     for (const auto& shard : shards) {
-        for (auto chunk : shard->range(read_only)) {
-            for (const auto& [key, entry] : chunk) {
-                if (TTLManager::is_expired(entry.expire_at))
-                    continue;
-
-                if (std::holds_alternative<DBShard::String>(entry.value)) {
-                    auto ttl = TTLManager::ttl(entry.expire_at);
-                    if (ttl) {
-                        auto value = std::get<DBShard::String>(entry.value);
-                        encode_request(buffer, { "SET", key, value });
-                    }
-                }
-                else if (std::holds_alternative<DBShard::Integral>(entry.value)) {
-                    auto ttl = TTLManager::ttl(entry.expire_at);
-                    if (ttl) {
-                        auto value = std::get<DBShard::Integral>(entry.value);
-                        encode_request(buffer, { "SET", key, std::to_string(value) });
-                    }
-                }
-                else if (std::holds_alternative<DBShard::ZSet>(entry.value)) {
-                    auto ttl = TTLManager::ttl(entry.expire_at);
-                    if (ttl) {
-                        auto& zset = std::get<DBShard::ZSet>(entry.value);
-                        // TODO: 暂时不支持遍历
-                        // for (const auto& [member, score] : zset) {
-                        //     encode_request(buffer, { "ZADD", key, std::to_string(score), member });
-                        // }
-                    }
-                }
-            }
-
-            if (buffer.size() > 4 * 1024 * 1024) {
-                file.append(std::as_bytes(std::span{buffer}));
-                buffer.clear();
-            }
+        for (auto chunk : shard->range(read_only))
+            handle_chunk(chunk, buffer);
+    
+        if (buffer.size() > 4 * 1024 * 1024) {
+            file.append(std::as_bytes(std::span{buffer}));
+            buffer.clear();
         }
     }
 
@@ -131,6 +144,9 @@ void AOF::append(std::pmr::string command)
 
         file_.flush(); // 确保数据被写入磁盘
 
+        if (is_rewriting_.load(std::memory_order_relaxed))
+            rewrite_buffer_.append(command);
+
         if (!is_healthy()) {
             SPDLOG_INFO("AOF is recovered.");
             healthy_.store(true, std::memory_order_relaxed);
@@ -142,10 +158,15 @@ void AOF::append(std::pmr::string command)
 
 void AOF::background_rewrite(std::span<const std::unique_ptr<DBShard>> shards)
 {
+    bool expected = false;
+    if (!is_rewriting_.compare_exchange_strong(expected, true, std::memory_order_relaxed)) {
+        SPDLOG_WARN("AOF rewrite already in progress, skipping new rewrite request.");
+        return;
+    }
+
     auto task = [this, shards] -> void 
     {
         SPDLOG_INFO("AOF: Starting background rewrite...");
-        is_rewriting_.store(true, std::memory_order_relaxed);
 
         auto tmp_path = file_.path().concat(".tmp");
         dump_shards_to_file(shards, tmp_path);
@@ -184,6 +205,15 @@ void AOF::swap_rewrite_file(const std::filesystem::path& tmp)
 {
     auto task = [this, tmp]() 
     {
+        if (!rewrite_buffer_.empty()) {
+            // 在重写过程中有新的命令写入，追加到重写文件末尾，确保不丢失数据
+            StdWritableFile rewrite_file{ tmp };
+            rewrite_file.append(std::as_bytes(std::span{rewrite_buffer_}));
+            rewrite_file.flush();
+            rewrite_file.close();
+            rewrite_buffer_.clear();
+        }
+        
         file_.sync(); // 确保当前 AOF 文件的内容被写入磁盘
         file_.close();  
         fs::rename(tmp, file_.path());

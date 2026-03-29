@@ -14,7 +14,7 @@ TEST_CASE("db_shard set/get/erase entry", "[db_shard]")
 
     DBShard::Entry entry{
         .value = DBShard::String{ "hello" },
-        .expire_at = TTLManager::PERSISTENT_INTEGRAL
+        .expire_at = TTLManager::PERSISTENT
     };
 
     shard.set("k", std::move(entry));
@@ -108,6 +108,6 @@ TEST_CASE("db_shard modify covers expire ttl and persist", "[db_shard]")
 
         auto persistent_ttl = handler.ttl();
         REQUIRE(persistent_ttl.has_value());
-        CHECK(*persistent_ttl == TTLManager::PERSISTENT_INTEGRAL);
+        CHECK(*persistent_ttl == TTLManager::PERSISTENT);
     });
 }

@@ -40,6 +40,11 @@ public:
         Value value;
         std::int64_t expire_at;
     };
+    
+    using ReadRange = DashTable<Entry>::ReadRange;
+    using ModifyRange = DashTable<Entry>::ModifyRange;
+    using LockedReadView = DashTable<Entry>::LockedReadView;
+    using LockedModifyView = DashTable<Entry>::LockedModifyView;
 
     class EntryHandler;
 
@@ -80,12 +85,12 @@ public:
         return table_.erase(key, unlock);
     }
 
-    auto range(ReadOnlyTag read_only) const noexcept -> DashTable<Entry>::ReadRange
+    auto range(ReadOnlyTag read_only) const noexcept -> ReadRange
     {
         return table_.range(read_only);
     }
 
-    auto range(ReadWriteTag read_write) noexcept -> DashTable<Entry>::ModifyRange
+    auto range(ReadWriteTag read_write) noexcept -> ModifyRange
     {
         return table_.range(read_write);
     }
@@ -134,7 +139,7 @@ public:
     {
         Entry entry {
             .value = T{ std::forward<Args>(args)... },
-            .expire_at = TTLManager::PERSISTENT_INTEGRAL
+            .expire_at = TTLManager::PERSISTENT
         };
 
         auto [iter, emplaced] = segment_.emplace(key_, std::move(entry));
@@ -163,7 +168,7 @@ public:
     {
         if (!exists()) return false;
 
-        it_->second.expire_at = TTLManager::PERSISTENT_INTEGRAL;
+        it_->second.expire_at = TTLManager::PERSISTENT;
         return true;
     }
     
@@ -173,7 +178,7 @@ public:
 
         auto expire_at = it_->second.expire_at;
         if (TTLManager::is_persist(expire_at))
-            return TTLManager::PERSISTENT_INTEGRAL;
+            return TTLManager::PERSISTENT;
 
         if (TTLManager::is_expired(expire_at)) {
             segment_.erase(it_);
