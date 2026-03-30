@@ -116,7 +116,6 @@ bench concurrency_c100_p256_set_get \
 
 control FLUSHALL
 seed_strings 200000 100000
-control SET key:fixed value
 
 bench exists \
   -h "$HOST" -p "$PORT" -c 50 -n 1000000 -P 64 -r 100000 EXISTS "key:__rand_int__"
@@ -125,7 +124,7 @@ bench type \
   -h "$HOST" -p "$PORT" -c 50 -n 500000 -P 32 -r 100000 TYPE "key:__rand_int__"
 
 bench strlen \
-  -h "$HOST" -p "$PORT" -c 50 -n 500000 -P 32 STRLEN "key:fixed"
+  -h "$HOST" -p "$PORT" -c 50 -n 500000 -P 32 -r 100000 STRLEN "key:__rand_int__"
 
 bench del \
   -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 16 -r 100000 DEL "key:__rand_int__"
@@ -192,25 +191,24 @@ bench mset \
 
 control FLUSHALL
 seed_hashes 200000 100000
-control HSET hash:fixed field value
 
 bench hget \
-  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HGET "hash:fixed" field
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HGET "hash:__rand_int__" field
 
 bench hlen \
   -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HLEN "hash:__rand_int__"
 
 bench hgetall \
-  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HGETALL "hash:fixed"
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HGETALL "hash:__rand_int__"
 
 bench hkeys \
-  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HKEYS "hash:fixed"
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HKEYS "hash:__rand_int__"
 
 bench hvals \
-  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HVALS "hash:fixed"
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HVALS "hash:__rand_int__"
 
 bench hexists \
-  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HEXISTS "hash:fixed" field
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HEXISTS "hash:__rand_int__" field
 
 control FLUSHALL
 

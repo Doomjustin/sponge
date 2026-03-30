@@ -108,6 +108,17 @@ TEST_CASE("append returns new length", "[command]")
     REQUIRE(reply.str() == ":4\r\n");
 }
 
+TEST_CASE("strlen returns zero for missing key", "[command]")
+{
+    ApplicationContext app{ 1, "/dev/null" };
+    Reply reply;
+    auto context = make_context(app, reply);
+
+    command::strlen(context, "missing");
+
+    REQUIRE(reply.str() == ":0\r\n");
+}
+
 TEST_CASE("hset returns added field count", "[command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
@@ -132,6 +143,50 @@ TEST_CASE("hlen returns field count", "[command]")
     command::hlen(context, "h");
 
     REQUIRE(reply.str() == ":2\r\n");
+}
+
+TEST_CASE("hget returns null for missing key", "[command]")
+{
+    ApplicationContext app{ 1, "/dev/null" };
+    Reply reply;
+    auto context = make_context(app, reply);
+
+    command::hget(context, "missing", "field");
+
+    REQUIRE(reply.str() == "$-1\r\n");
+}
+
+TEST_CASE("hgetall returns empty array for missing key", "[command]")
+{
+    ApplicationContext app{ 1, "/dev/null" };
+    Reply reply;
+    auto context = make_context(app, reply);
+
+    command::hgetall(context, "missing");
+
+    REQUIRE(reply.str() == "*0\r\n");
+}
+
+TEST_CASE("hkeys returns empty array for missing key", "[command]")
+{
+    ApplicationContext app{ 1, "/dev/null" };
+    Reply reply;
+    auto context = make_context(app, reply);
+
+    command::hkeys(context, "missing");
+
+    REQUIRE(reply.str() == "*0\r\n");
+}
+
+TEST_CASE("hvals returns empty array for missing key", "[command]")
+{
+    ApplicationContext app{ 1, "/dev/null" };
+    Reply reply;
+    auto context = make_context(app, reply);
+
+    command::hvals(context, "missing");
+
+    REQUIRE(reply.str() == "*0\r\n");
 }
 
 TEST_CASE("lpush returns list length", "[command]")

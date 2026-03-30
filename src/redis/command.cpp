@@ -510,6 +510,11 @@ void command::strlen(CommandContext& context, std::string_view key)
 {
     auto strlen_string = [&] (auto& handler)
     {
+        if (!handler.exists()) {
+            context.reply.append(0);
+            return;
+        }
+
         if (auto* str = handler.get_if(as_type<DBShard::String>))
             context.reply.append(str->size());
         else
@@ -1105,6 +1110,11 @@ void command::hget(CommandContext& context, std::string_view key, std::string_vi
 {
     auto getter = [&] (auto& handler)
     {
+        if (!handler.exists()) {
+            context.reply.append(null_string);
+            return;
+        }
+
         auto* hash_table = handler.get_if(as_type<DBShard::HashTable>);
         if (!hash_table) {
             context.reply.append(Error{ fmt::format("ERR key '{}' does not hold a hash", key) });
@@ -1233,6 +1243,11 @@ void command::hgetall(CommandContext& context, std::string_view key)
 {
     auto getter = [&] (auto& handler)
     {
+        if (!handler.exists()) {
+            context.reply.append(ArrayHeader{ 0 });
+            return;
+        }
+
         auto* hash_table = handler.get_if(as_type<DBShard::HashTable>);
         if (!hash_table) {
             context.reply.append(Error{ fmt::format("ERR key '{}' does not hold a hash", key) });
