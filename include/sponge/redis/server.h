@@ -19,7 +19,7 @@ public:
     void run();
 
 private:
-    static constexpr std::string_view AOF_FILENAME = "/tmp/sponge/redis.aof";
+    static constexpr std::string_view AOF_FILENAME = ".redis.aof";
 
     boost::asio::io_context io_context_;
     ApplicationContext application_context_;
