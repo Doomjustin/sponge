@@ -1,5 +1,34 @@
 # 复现实验
 
+# 2026-03-31 SortedSet 结构基准补充
+
+除了 `redis-benchmark` 的端到端压测，这里补充一个结构级基准：
+
+```bash
+cmake --build build-relwithdebinfo --target sorted_set_hybrid_vs_flat_map -j
+./build-relwithdebinfo/benchmark/sorted_set_hybrid_vs_flat_map
+```
+
+该基准直接比较：
+
+- `unordered_flat_map` only
+- 当前 hybrid（`listpack + skiplist + dict`）
+
+最新结果（2026-03-31）：
+
+| 操作 | flat_map(ms) | hybrid(ms) | flat/hybrid |
+|:---:|:------------:|:----------:|:-----------:|
+| zadd | 22.41 | 125.90 | 0.18x |
+| zscore | 13.41 | 12.41 | 1.08x |
+| zcount | 705.49 | 1.81 | 389.34x |
+| zrank | 680.64 | 1.60 | 425.93x |
+| zrem | 4.96 | 97.80 | 0.05x |
+
+结论：
+
+- `zscore/zcount/zrank` 查询路径已足够快。
+- 当前剩余主要瓶颈集中在 `zadd/zrem` 写路径。
+
 可以直接使用脚本批量跑完当前已实现命令的 benchmark，并把每一项输出保存到独立文件：
 
 ```bash

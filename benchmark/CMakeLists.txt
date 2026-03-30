@@ -25,3 +25,8 @@ add_executable(arena_and_size_benchmark arena_and_size_benchmark.cpp)
 target_compile_features(arena_and_size_benchmark PRIVATE cxx_std_23)
 target_compile_options(arena_and_size_benchmark PRIVATE -O3 -DNDEBUG)
 target_link_libraries(arena_and_size_benchmark PRIVATE sponge::redis)
+
+add_executable(sorted_set_hybrid_vs_flat_map sorted_set_hybrid_vs_flat_map.cpp)
+target_compile_features(sorted_set_hybrid_vs_flat_map PRIVATE cxx_std_23)
+target_compile_options(sorted_set_hybrid_vs_flat_map PRIVATE -O3 -DNDEBUG)
+target_link_libraries(sorted_set_hybrid_vs_flat_map PRIVATE sponge::redis)

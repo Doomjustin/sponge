@@ -188,6 +188,39 @@ redis::String:         914.07ms (1.77x 慢)
 5. ✅ **实际工程推荐** — 优先 std::string，需要自定义内存：std::pmr::string + Arena
 6. ✅ **学习 Redis 架构** — redis::String 仍然有教学价值
 
+### 6. sorted_set_hybrid_vs_flat_map ⭐ NEW
+
+**目的：** 直接比较有序集合两种实现策略的性能差异：
+
+- flat_map-only（只用 `unordered_flat_map`）
+- hybrid（当前 `listpack + skiplist + dict`）
+
+**运行方式：**
+```bash
+./benchmark/sorted_set_hybrid_vs_flat_map
+```
+
+**测试规模：**
+
+- elements = 200000
+- zscore_rounds = 200000
+- ordered_query_rounds = 1000
+
+**最新结果（2026-03-31）：**
+
+| 操作 | flat_map(ms) | hybrid(ms) | flat/hybrid |
+|:---:|:------------:|:----------:|:-----------:|
+| zadd | 22.41 | 125.90 | 0.18x |
+| zscore | 13.41 | 12.41 | 1.08x |
+| zcount | 705.49 | 1.81 | 389.34x |
+| zrank | 680.64 | 1.60 | 425.93x |
+| zrem | 4.96 | 97.80 | 0.05x |
+
+**结论：**
+
+- 查询路径（`zscore/zcount/zrank`）已经足够快。
+- 当前优化重点应集中在写路径（`zadd/zrem`）。
+
 ---
 
 ## 📈 性能总结

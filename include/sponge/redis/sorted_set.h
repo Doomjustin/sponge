@@ -57,6 +57,10 @@ public:
 
     auto erase(Member member) -> bool;
 
+    auto zcount(Score min, Score max) const -> size_t;
+
+    auto zrank(Member member) const -> std::optional<int64_t>;
+
     [[nodiscard]]
     auto size() const -> size_t;
 

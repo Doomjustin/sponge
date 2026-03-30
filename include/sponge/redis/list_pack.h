@@ -50,11 +50,11 @@ public:
         push_back(std::to_string(value));
     }
 
-    void insert(Iterator pos, std::string_view view);
+    auto insert(Iterator pos, std::string_view view) -> Iterator;
 
-    void insert_string(Iterator pos, std::string_view view);
+    auto insert_string(Iterator pos, std::string_view view) -> Iterator;
 
-    void insert(Iterator pos, int64_t value);
+    auto insert(Iterator pos, int64_t value) -> Iterator;
 
     template<typename Iter, std::integral T>
         requires std::is_same_v<Iter, Iterator>

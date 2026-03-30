@@ -121,6 +121,25 @@
 
 这次 live 测试里，Sponge RelWithDebInfo 在基线、1KB 和 16KB 三组 `SET/GET` 上都显著快于原生 Redis；命令级结果里，除了 `DBSIZE` 这类控制面命令外，大多数已实现命令也都有优势。
 
+### SortedSet 内部结构基准（2026-03-31）
+
+为了隔离网络、协议和键空间随机性的干扰，仓库内增加了结构级基准：`benchmark/sorted_set_hybrid_vs_flat_map`，直接比较两种实现策略：
+
+- flat_map-only：仅用 `unordered_flat_map`
+- hybrid：当前 `listpack + skiplist + dict`
+
+本轮最新结果（`elements=200000, zscore_rounds=200000, ordered_query_rounds=1000`）：
+
+| 操作 | flat_map | hybrid | flat/hybrid |
+|:---:|:--------:|:------:|:-----------:|
+| zadd | 22.41ms | 125.90ms | 0.18x |
+| zscore | 13.41ms | 12.41ms | 1.08x |
+| zcount | 705.49ms | 1.81ms | 389.34x |
+| zrank | 680.64ms | 1.60ms | 425.93x |
+| zrem | 4.96ms | 97.80ms | 0.05x |
+
+结论：当前阶段 `score/count/rank` 查询路径已经足够快，后续优化重点放在 `zadd/zrem` 写路径。
+
 ## 支持的命令
 
 | 命令 | 类型 | 说明 |
@@ -137,6 +156,9 @@
 | `RENAME key newkey` | Write | 重命名键 |
 | `ZADD key score member` | Write | 向有序集合添加成员 |
 | `ZSCORE key member` | Read | 获取成员分数 |
+| `ZCOUNT key min max` | Read | 统计分数区间内成员数量 |
+| `ZRANK key member` | Read | 获取成员排名（从 0 开始） |
+| `ZREM key member` | Write | 删除有序集合成员 |
 | `FLUSHALL` | Write | 清空所有数据 |
 | `DBSIZE` | Read | 获取键数量 |
 | `BGREWRITEAOF` | Write | 异步 AOF 重写 |

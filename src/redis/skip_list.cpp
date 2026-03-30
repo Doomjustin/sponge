@@ -308,6 +308,47 @@ auto SkipList::rank(double score, std::string_view element) const -> size_t
     return 0;
 }
 
+auto SkipList::count_by_score(double min_score, double max_score) const -> size_t
+{
+    if (length_ == 0 || min_score > max_score)
+        return 0;
+
+    auto count_less_than = [&](double score) -> size_t {
+        size_t traversed = 0;
+        auto* current = head_;
+
+        for (auto i = level_; i > 0; --i) {
+            while (current->next(i - 1) && current->next(i - 1)->score < score) {
+                traversed += current->level(i - 1)->span;
+                current = current->next(i - 1);
+            }
+        }
+
+        return traversed;
+    };
+
+    auto count_less_equal = [&](double score) -> size_t {
+        size_t traversed = 0;
+        auto* current = head_;
+
+        for (auto i = level_; i > 0; --i) {
+            while (current->next(i - 1) && current->next(i - 1)->score <= score) {
+                traversed += current->level(i - 1)->span;
+                current = current->next(i - 1);
+            }
+        }
+
+        return traversed;
+    };
+
+    auto lower = count_less_than(min_score);
+    auto upper = count_less_equal(max_score);
+    if (upper <= lower)
+        return 0;
+
+    return upper - lower;
+}
+
 auto SkipList::find(double score, std::string_view element) const -> Iterator
 {
     auto* current = head_;

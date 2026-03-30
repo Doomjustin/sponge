@@ -69,6 +69,11 @@ public:
     [[nodiscard]]
     auto rank(double score, std::string_view element) const -> size_t;
 
+    // 返回 score 落在 [min_score, max_score] 区间内的元素数量。
+    // 仅按 score 比较，不考虑 element 维度。
+    [[nodiscard]]
+    auto count_by_score(double min_score, double max_score) const -> size_t;
+
     // 查找给定元素，找不到则返回 end()。
     [[nodiscard]]
     auto find(double score, std::string_view element) const -> Iterator;

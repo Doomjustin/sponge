@@ -788,14 +788,7 @@ void command::zcount(CommandContext& context, std::string_view key, double min, 
             return;
         }
 
-        size_t count = 0;
-        for (auto it = zset->begin(); it != zset->end(); ++it) {
-            auto [member, score] = *it;
-            if (score >= min && score <= max)
-                ++count;
-        }
-
-        context.reply.append(count);
+        context.reply.append(zset->zcount(min, max));
     };
 
     context.shard(key).modify(key, counter);
@@ -816,16 +809,10 @@ void command::zrank(CommandContext& context, std::string_view key, std::string_v
             return;
         }
 
-        int64_t rank = 0;
-        for (auto it = zset->begin(); it != zset->end(); ++it, ++rank) {
-            auto [m, s] = *it;
-            if (m == member) {
-                context.reply.append(rank);
-                return;
-            }
-        }
-
-        context.reply.append(null_string);
+        if (auto rank = zset->zrank(member))
+            context.reply.append(*rank);
+        else
+            context.reply.append(null_string);
     };
 
     context.shard(key).modify(key, ranker);

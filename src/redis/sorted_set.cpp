@@ -1,6 +1,8 @@
 #include <sponge/redis/sorted_set.h>
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <cstdint>
 #include <utility>
 #include <variant>
@@ -10,6 +12,37 @@
 #include <sponge/utility.h>
 
 namespace spg::redis {
+
+namespace {
+
+[[nodiscard]]
+auto serialize_score(SortedSet::Score score) -> std::string
+{
+    std::array<char, 64> buffer{};
+    auto [ptr, ec] = std::to_chars(
+      buffer.data(),
+      buffer.data() + static_cast<std::ptrdiff_t>(buffer.size()),
+      score,
+      std::chars_format::general,
+      17
+    );
+    if (ec == std::errc{})
+        return std::string{ buffer.data(), static_cast<size_t>(ptr - buffer.data()) };
+
+    return fmt::format("{}", score);
+}
+
+[[nodiscard]]
+auto member_view(ListPack::Iterator it) -> std::string_view
+{
+    auto element = *it;
+    if (std::holds_alternative<std::string_view>(element))
+        return std::get<std::string_view>(element);
+
+    std::unreachable();
+}
+
+} // namespace
 
 auto SortedSet::add(Score score, Member member) -> bool {
     if (std::holds_alternative<ListPack>(backend_))
@@ -29,7 +62,7 @@ auto SortedSet::score(Member member) -> std::optional<Score>
             auto next = score_iter;
             ++next;
 
-            if (extract(member_iter, as_member) == member)
+            if (member_view(member_iter) == member)
                 return extract(score_iter, as_score);
 
             it = next;
@@ -57,7 +90,7 @@ auto SortedSet::contains(Member member) -> bool
             auto next = score_iter;
             ++next;
 
-            if (extract(member_iter, as_member) == member)
+            if (member_view(member_iter) == member)
                 return true;
 
             it = next;
@@ -81,7 +114,7 @@ auto SortedSet::erase(Member member) -> bool
             auto next = score_iter;
             ++next;
 
-            if (extract(member_iter, as_member) == member) {
+            if (member_view(member_iter) == member) {
                 listpack.erase(member_iter, next);
                 return true;
             }
@@ -101,6 +134,71 @@ auto SortedSet::erase(Member member) -> bool
     node.skip_list.erase(score, it->first);
     node.dict.erase(it);
     return true;
+}
+
+auto SortedSet::zcount(Score min, Score max) const -> size_t
+{
+    if (std::holds_alternative<ListPack>(backend_)) {
+        auto& listpack = std::get<ListPack>(backend_);
+        size_t count = 0;
+
+        for (auto it = listpack.begin(); it != listpack.end();) {
+            auto member_iter = it;
+            auto score_iter = it;
+            ++score_iter;
+            auto next = score_iter;
+            ++next;
+
+            auto score = extract(score_iter, as_score);
+            if (score > max)
+                break;
+
+            if (score >= min)
+                ++count;
+
+            it = next;
+        }
+
+        return count;
+    }
+
+    auto& node = std::get<Node>(backend_);
+    return node.skip_list.count_by_score(min, max);
+}
+
+auto SortedSet::zrank(Member member) const -> std::optional<int64_t>
+{
+    if (std::holds_alternative<ListPack>(backend_)) {
+        auto& listpack = std::get<ListPack>(backend_);
+        int64_t rank = 0;
+        for (auto it = listpack.begin(); it != listpack.end();) {
+            auto member_iter = it;
+            auto score_iter = it;
+            ++score_iter;
+            auto next = score_iter;
+            ++next;
+
+            auto element = *member_iter;
+            if (std::holds_alternative<Member>(element) && std::get<Member>(element) == member)
+                return rank;
+
+            ++rank;
+            it = next;
+        }
+
+        return std::nullopt;
+    }
+
+    auto& node = std::get<Node>(backend_);
+    auto it = node.dict.find(member);
+    if (it == node.dict.end())
+        return std::nullopt;
+
+    auto rank = node.skip_list.rank(it->second, it->first);
+    if (rank == 0)
+        return std::nullopt;
+
+    return static_cast<int64_t>(rank - 1);
 }
 
 auto SortedSet::size() const -> size_t
@@ -162,46 +260,73 @@ auto SortedSet::add_to_listpack(Score score, Member member) -> bool
 {
     auto& listpack = std::get<ListPack>(backend_);
 
-    std::vector<std::pair<String, Score>> entries;
-    entries.reserve((listpack.size() / 2) + 1);
+    auto upsert_pair = [&](ListPack::Iterator pos) {
+        auto inserted_member = listpack.insert_string(pos, member);
+        auto score_pos = inserted_member;
+        ++score_pos;
+        auto score_text = serialize_score(score);
+        listpack.insert_string(score_pos, score_text);
+    };
 
-    bool inserted = true;
-    bool found = false;
+    auto less_than = [&](Score existing_score, std::string_view existing_member) {
+        if (existing_score != score)
+            return existing_score < score;
+
+        return existing_member < member;
+    };
+
+    std::optional<ListPack::Iterator> old_member_it;
+    std::optional<ListPack::Iterator> old_next_it;
     for (auto it = listpack.begin(); it != listpack.end();) {
-        auto existing_member = extract(it++, as_member);
-        auto existing_score = extract(it++, as_score);
+        auto member_it = it;
+        auto score_it = it;
+        ++score_it;
+        auto next = score_it;
+        ++next;
 
+        auto existing_member = member_view(member_it);
         if (existing_member == member) {
-            entries.emplace_back(String{ member }, score);
-            inserted = false;
-            found = true;
-            continue;
+            auto existing_score = extract(score_it, as_score);
+            if (existing_score == score)
+                return false;
+
+            old_member_it = member_it;
+            old_next_it = next;
+            break;
         }
 
-        entries.emplace_back(String{ existing_member }, existing_score);
+        it = next;
     }
 
-    if (!found)
-        entries.emplace_back(String{ member }, score);
-
-    if (!found && (member.size() > MAX_LISTPACK_BYTES || entries.size() > MAX_LISTPACK_ENTRIES)) {
+    if (!old_member_it && (member.size() > MAX_LISTPACK_BYTES || (listpack.size() / 2 + 1) > MAX_LISTPACK_ENTRIES)) {
         upgrade();
         return add_to_skiplist(score, member);
     }
 
-    std::ranges::sort(entries, [] (const auto& lhs, const auto& rhs) {
-        if (lhs.second != rhs.second)
-            return lhs.second < rhs.second;
-        return lhs.first < rhs.first;
-    });
+    if (old_member_it)
+        listpack.erase(*old_member_it, *old_next_it);
 
-    listpack.clear();
-    for (const auto& [entry_member, entry_score] : entries) {
-        listpack.push_back_string(entry_member);
-        listpack.push_back(fmt::format("{}", entry_score));
+    auto insert_pos = listpack.end();
+    for (auto it = listpack.begin(); it != listpack.end();) {
+        auto member_it = it;
+        auto score_it = it;
+        ++score_it;
+        auto next = score_it;
+        ++next;
+
+        auto existing_score = extract(score_it, as_score);
+        auto existing_member = member_view(member_it);
+        if (!less_than(existing_score, existing_member)) {
+            insert_pos = member_it;
+            break;
+        }
+
+        it = next;
     }
 
-    return inserted;
+    upsert_pair(insert_pos);
+
+    return !old_member_it.has_value();
 }
 
 auto SortedSet::add_to_skiplist(Score score, Member member) -> bool 

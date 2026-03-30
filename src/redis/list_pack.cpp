@@ -500,7 +500,7 @@ void ListPack::push_back(int64_t value)
     update_total_bytes();
 }
 
-void ListPack::insert(Iterator pos, std::string_view view)
+auto ListPack::insert(Iterator pos, std::string_view view) -> Iterator
 {
     // 如果不是以 '0' 开头的字符串，尝试解析为整数
     if (!view.empty() && view[0] != '0') {
@@ -509,29 +509,38 @@ void ListPack::insert(Iterator pos, std::string_view view)
             return insert(pos, *res);
     }
 
+    auto index = static_cast<size_t>(std::distance(buffer_.begin(), pos.iter_));
+
     // 中间插入时无需重写 EOF，末尾 EOF 已由现有 buffer 维护。
     encode(std::inserter(buffer_, pos.iter_), view);
 
     increase_num_elements(1);
     update_total_bytes();
+    return Iterator{ buffer_.begin() + static_cast<std::ptrdiff_t>(index) };
 }
 
-void ListPack::insert_string(Iterator pos, std::string_view view)
+auto ListPack::insert_string(Iterator pos, std::string_view view) -> Iterator
 {
+    auto index = static_cast<size_t>(std::distance(buffer_.begin(), pos.iter_));
+
     // 中间插入时无需重写 EOF，末尾 EOF 已由现有 buffer 维护。
     encode(std::inserter(buffer_, pos.iter_), view);
 
     increase_num_elements(1);
     update_total_bytes();
+    return Iterator{ buffer_.begin() + static_cast<std::ptrdiff_t>(index) };
 }
 
-void ListPack::insert(Iterator pos, int64_t value)
+auto ListPack::insert(Iterator pos, int64_t value) -> Iterator
 {
+    auto index = static_cast<size_t>(std::distance(buffer_.begin(), pos.iter_));
+
     // 中间插入时无需重写 EOF，末尾 EOF 已由现有 buffer 维护。
     encode(std::inserter(buffer_, pos.iter_), value);
 
     increase_num_elements(1);
     update_total_bytes();
+    return Iterator{ buffer_.begin() + static_cast<std::ptrdiff_t>(index) };
 }
 
 void ListPack::erase(Iterator pos)
