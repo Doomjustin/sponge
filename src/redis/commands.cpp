@@ -83,7 +83,7 @@ struct Command {
     Type type;
 };
 
-constexpr std::array<Command, 15> commands {
+constexpr std::array<Command, 46> commands {
     // -------- key commands --------
     Command{ .name="EXISTS", .handler=&command::exists, .type=Type::Read },
     Command{ .name="DEL", .handler=&command::del, .type=Type::Write },
@@ -95,10 +95,43 @@ constexpr std::array<Command, 15> commands {
     // -------- string commands --------
     Command{ .name="SET", .handler=&command::set, .type=Type::Write },
     Command{ .name="GET", .handler=bind_command<&command::get>(), .type=Type::Read },
+    Command{ .name="MSET", .handler=&command::mset, .type=Type::Write },
+    Command{ .name="MGET", .handler=&command::mget, .type=Type::Read },
+    Command{ .name="INCR", .handler=bind_command<&command::incr>(), .type=Type::Write },
+    Command{ .name="DECR", .handler=bind_command<&command::decr>(), .type=Type::Write },
+    Command{ .name="INCRBY", .handler=bind_command<&command::incrby>(), .type=Type::Write },
+    Command{ .name="DECRBY", .handler=bind_command<&command::decrby>(), .type=Type::Write },
+    Command{ .name="APPEND", .handler=bind_command<&command::append>(), .type=Type::Write },
     Command{ .name="STRLEN", .handler=bind_command<&command::strlen>(), .type=Type::Read },
     // ------ sorted set commands ------
     Command{ .name="ZADD", .handler=&command::zadd, .type=Type::Write },
     Command{ .name="ZSCORE", .handler=bind_command<&command::zscore>(), .type=Type::Read },
+    Command{ .name="ZCARD", .handler=bind_command<&command::zcard>(), .type=Type::Read },
+    Command{ .name="ZREM", .handler=&command::zrem, .type=Type::Write },
+    Command{ .name="ZRANGE", .handler=bind_command<&command::zrange>(), .type=Type::Read },
+    Command{ .name="ZCOUNT", .handler=bind_command<&command::zcount>(), .type=Type::Read },
+    Command{ .name="ZRANK", .handler=bind_command<&command::zrank>(), .type=Type::Read },
+    // -------- list commands --------
+    Command{ .name="LPUSH", .handler=&command::lpush, .type=Type::Write },
+    Command{ .name="RPUSH", .handler=&command::rpush, .type=Type::Write },
+    Command{ .name="LPOP", .handler=&command::lpop, .type=Type::Write },
+    Command{ .name="RPOP", .handler=&command::rpop, .type=Type::Write },
+    Command{ .name="LRANGE", .handler=bind_command<&command::lrange>(), .type=Type::Read },
+    Command{ .name="LLEN", .handler=bind_command<&command::llen>(), .type=Type::Read },
+    Command{ .name="LINDEX", .handler=bind_command<&command::lindex>(), .type=Type::Read },
+    Command{ .name="LSET", .handler=bind_command<&command::lset>(), .type=Type::Write },
+    Command{ .name="LTRIM", .handler=bind_command<&command::ltrim>(), .type=Type::Write },
+    // ------- hash commands --------
+    Command{ .name="HSET", .handler=&command::hset, .type=Type::Write },
+    Command{ .name="HGET", .handler=bind_command<&command::hget>(), .type=Type::Read },
+    Command{ .name="HMGET", .handler=&command::hmget, .type=Type::Read },
+    Command{ .name="HINCRBY", .handler=bind_command<&command::hincrby>(), .type=Type::Write },
+    Command{ .name="HDEL", .handler=&command::hdel, .type=Type::Write },
+    Command{ .name="HLEN", .handler=bind_command<&command::hlen>(), .type=Type::Read },
+    Command{ .name="HGETALL", .handler=bind_command<&command::hgetall>(), .type=Type::Read },
+    Command{ .name="HKEYS", .handler=bind_command<&command::hkeys>(), .type=Type::Read },
+    Command{ .name="HVALS", .handler=bind_command<&command::hvals>(), .type=Type::Read },
+    Command{ .name="HEXISTS", .handler=bind_command<&command::hexists>(), .type=Type::Read },
     // ------- other commands --------
     Command{ .name="BGREWRITEAOF", .handler=bind_command<&command::bg_rewrite_aof>(), .type=Type::Read },
     Command{ .name="FLUSHALL", .handler=&command::flushall, .type=Type::Write },

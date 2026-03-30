@@ -32,6 +32,25 @@ bench() {
   echo
 }
 
+bench_allow_error() {
+  local name="$1"
+  shift
+
+  echo "== $name (allow error) =="
+  {
+    echo "# $name"
+    echo "command: $REDIS_BENCHMARK_BIN $*"
+    echo
+    set +e
+    "$REDIS_BENCHMARK_BIN" "$@"
+    local code=$?
+    set -e
+    echo
+    echo "exit_code: $code"
+  } | tee "$OUTPUT_DIR/${name}.txt"
+  echo
+}
+
 control() {
   "$REDIS_BENCHMARK_BIN" -h "$HOST" -p "$PORT" -c 1 -n 1 -P 1 "$@" >/dev/null
 }
@@ -47,6 +66,18 @@ seed_zsets() {
   local requests="$1"
   local range="$2"
   "$REDIS_BENCHMARK_BIN" -h "$HOST" -p "$PORT" -n "$requests" -r "$range" ZADD "zset:__rand_int__" __rand_int__ "member:__rand_int__" >/dev/null
+}
+
+seed_hashes() {
+  local requests="$1"
+  local range="$2"
+  "$REDIS_BENCHMARK_BIN" -h "$HOST" -p "$PORT" -n "$requests" -r "$range" HSET "hash:__rand_int__" field value >/dev/null
+}
+
+seed_lists() {
+  local requests="$1"
+  local range="$2"
+  "$REDIS_BENCHMARK_BIN" -h "$HOST" -p "$PORT" -n "$requests" -r "$range" RPUSH "list:__rand_int__" value >/dev/null
 }
 
 echo "output dir: $OUTPUT_DIR"
@@ -85,6 +116,7 @@ bench concurrency_c100_p256_set_get \
 
 control FLUSHALL
 seed_strings 200000 100000
+control SET key:fixed value
 
 bench exists \
   -h "$HOST" -p "$PORT" -c 50 -n 1000000 -P 64 -r 100000 EXISTS "key:__rand_int__"
@@ -93,7 +125,7 @@ bench type \
   -h "$HOST" -p "$PORT" -c 50 -n 500000 -P 32 -r 100000 TYPE "key:__rand_int__"
 
 bench strlen \
-  -h "$HOST" -p "$PORT" -c 50 -n 500000 -P 32 -r 100000 STRLEN "key:__rand_int__"
+  -h "$HOST" -p "$PORT" -c 50 -n 500000 -P 32 STRLEN "key:fixed"
 
 bench del \
   -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 16 -r 100000 DEL "key:__rand_int__"
@@ -113,7 +145,7 @@ bench persist \
 control FLUSHALL
 seed_strings 100000 100000
 
-bench rename \
+bench_allow_error rename \
   -h "$HOST" -p "$PORT" -c 20 -n 100000 -P 8 -r 100000 RENAME "key:__rand_int__" "key2:__rand_int__"
 
 control FLUSHALL
@@ -126,13 +158,101 @@ seed_zsets 100000 10000
 bench zscore \
   -h "$HOST" -p "$PORT" -c 20 -n 300000 -P 16 -r 10000 ZSCORE "zset:__rand_int__" "member:__rand_int__"
 
+bench zcard \
+  -h "$HOST" -p "$PORT" -c 20 -n 300000 -P 16 -r 10000 ZCARD "zset:__rand_int__"
+
+bench zrange \
+  -h "$HOST" -p "$PORT" -c 20 -n 300000 -P 16 -r 10000 ZRANGE "zset:__rand_int__" 0 9
+
+bench zcount \
+  -h "$HOST" -p "$PORT" -c 20 -n 300000 -P 16 -r 10000 ZCOUNT "zset:__rand_int__" 0 999999
+
+bench zrank \
+  -h "$HOST" -p "$PORT" -c 20 -n 300000 -P 16 -r 10000 ZRANK "zset:__rand_int__" "member:__rand_int__"
+
+bench zrem \
+  -h "$HOST" -p "$PORT" -c 20 -n 100000 -P 16 -r 10000 ZREM "zset:__rand_int__" "member:__rand_int__"
+
+control FLUSHALL
+seed_strings 200000 100000
+
+bench mget \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 MGET "key:__rand_int__" "key:__rand_int__" "key:__rand_int__"
+
+bench incr \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 INCR "counter:__rand_int__"
+
+bench append \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 APPEND "key:__rand_int__" x
+
+control FLUSHALL
+
+bench mset \
+  -h "$HOST" -p "$PORT" -c 50 -n 200000 -P 32 -r 100000 MSET "k1:__rand_int__" __rand_int__ "k2:__rand_int__" __rand_int__
+
+control FLUSHALL
+seed_hashes 200000 100000
+control HSET hash:fixed field value
+
+bench hget \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HGET "hash:fixed" field
+
+bench hlen \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HLEN "hash:__rand_int__"
+
+bench hgetall \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HGETALL "hash:fixed"
+
+bench hkeys \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HKEYS "hash:fixed"
+
+bench hvals \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HVALS "hash:fixed"
+
+bench hexists \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 HEXISTS "hash:fixed" field
+
+control FLUSHALL
+
+bench hset \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 HSET "hash:__rand_int__" field value
+
+control FLUSHALL
+seed_lists 200000 100000
+
+bench llen \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 LLEN "list:__rand_int__"
+
+bench lrange \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 LRANGE "list:__rand_int__" 0 9
+
+bench lindex \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 LINDEX "list:__rand_int__" 0
+
+bench lpop \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 LPOP "list:__rand_int__"
+
+control FLUSHALL
+seed_lists 200000 100000
+
+bench rpop \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 RPOP "list:__rand_int__"
+
+control FLUSHALL
+
+bench lpush \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 LPUSH "list:__rand_int__" value
+
+bench rpush \
+  -h "$HOST" -p "$PORT" -c 50 -n 300000 -P 32 -r 100000 RPUSH "list:__rand_int__" value
+
 bench dbsize \
   -h "$HOST" -p "$PORT" -c 1 -n 1000 DBSIZE
 
 bench flushall \
   -h "$HOST" -p "$PORT" -c 1 -n 100 FLUSHALL
 
-bench bgrewriteaof \
+bench_allow_error bgrewriteaof \
   -h "$HOST" -p "$PORT" -c 1 -n 20 BGREWRITEAOF
 
 echo "done. logs saved in $OUTPUT_DIR"

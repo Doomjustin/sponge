@@ -34,6 +34,8 @@ public:
 
     void push_back(std::string_view view);
 
+    void push_back_string(std::string_view view);
+
     void push_back(int64_t value);
 
     template<std::integral T>
@@ -49,6 +51,8 @@ public:
     }
 
     void insert(Iterator pos, std::string_view view);
+
+    void insert_string(Iterator pos, std::string_view view);
 
     void insert(Iterator pos, int64_t value);
 
@@ -106,13 +110,25 @@ public:
     auto begin() noexcept -> Iterator;
 
     [[nodiscard]]
+    auto begin() const noexcept -> Iterator;
+
+    [[nodiscard]]
     auto end() noexcept -> Iterator;
+
+    [[nodiscard]]
+    auto end() const noexcept -> Iterator;
 
     [[nodiscard]]
     auto rbegin() noexcept -> ReverseIterator;
 
     [[nodiscard]]
+    auto rbegin() const noexcept -> ReverseIterator;
+
+    [[nodiscard]]
     auto rend() noexcept -> ReverseIterator;
+
+    [[nodiscard]]
+    auto rend() const noexcept -> ReverseIterator;
 
 private:
     static constexpr size_t HEADER_SIZE = 6;

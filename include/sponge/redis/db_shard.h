@@ -3,12 +3,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <optional>
 #include <type_traits>
 #include <variant>
 
+#include <boost/unordered/unordered_flat_map.hpp>
+
 #include <sponge/hash.h>
 #include <sponge/tag.h>
+#include <sponge/utility.h>
 
 #include "dash_table.h"
 #include "sorted_set.h"
@@ -27,11 +31,14 @@ public:
     using String = std::pmr::string;
     using Integral = std::int64_t;
     using ZSet = SortedSet;
-    // using HashTable = std::pmr::unordered_map<String, String>;
-    // using Flathash = std::pmr::vector<std::pair<String, String>>;
-    // using List = std::pmr::list<String>;
+    using HashTable = boost::unordered_flat_map<String, 
+                                                String,
+                                                PmrStringHash, 
+                                                std::equal_to<>, 
+                                                std::pmr::polymorphic_allocator<std::pair<const String, String>>>;
+    using List = std::pmr::list<String>;
     using Key = String;
-    using Value = std::variant<String, Integral, ZSet>;
+    using Value = std::variant<String, Integral, ZSet, HashTable, List>;
     using Size = size_t;
     using MemoryResource = std::pmr::memory_resource;
     using MilliSeconds = TTLManager::Milliseconds;
@@ -145,6 +152,17 @@ public:
         auto [iter, emplaced] = segment_.emplace(key_, std::move(entry));
         it_ = iter;
         return std::get_if<T>(&it_->second.value);
+    }
+
+    template<typename T, typename... Args>
+    auto upsert(std::type_identity<T>, Args&&... args) -> T*
+    {
+        if (exists()) {
+            it_->second.value = T{ std::forward<Args>(args)... };
+            return std::get_if<T>(&it_->second.value);
+        }
+
+        return emplace(as_type<T>, std::forward<Args>(args)...);
     }
 
     auto expire(int64_t ms) -> bool

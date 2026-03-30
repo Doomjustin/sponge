@@ -32,8 +32,8 @@ public:
     SkipList(const SkipList&) = delete;
     auto operator=(const SkipList&) -> SkipList& = delete;
 
-    SkipList(SkipList&&) = default;
-    auto operator=(SkipList&&) -> SkipList& = default;
+    SkipList(SkipList&& other) noexcept;
+    auto operator=(SkipList&& other) noexcept -> SkipList&;
 
     ~SkipList();
 
@@ -126,6 +126,10 @@ private:
     auto create_node(size_t level, double score, std::string_view element) -> Node*;
 
     void destroy_node(Node* node) noexcept;
+
+    void clear_nodes() noexcept;
+
+    void reset_empty();
 
     void erase_node(Node* node, std::array<Node*, MAX_LEVEL>& update);
 

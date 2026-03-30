@@ -14,7 +14,6 @@
 
 namespace spg::redis {
 
-
 template<typename Value>
 class DashTable {
 public:

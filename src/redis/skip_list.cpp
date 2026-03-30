@@ -155,15 +155,36 @@ SkipList::SkipList(std::pmr::memory_resource* resource)
 {
 }
 
+SkipList::SkipList(SkipList&& other) noexcept
+  : resource_{ other.resource_ },
+    head_{ std::exchange(other.head_, nullptr) },
+    tail_{ std::exchange(other.tail_, nullptr) },
+    level_{ std::exchange(other.level_, 1) },
+    length_{ std::exchange(other.length_, 0) }
+{
+    other.reset_empty();
+}
+
+auto SkipList::operator=(SkipList&& other) noexcept -> SkipList&
+{
+    if (this == &other)
+        return *this;
+
+    clear_nodes();
+
+    resource_ = other.resource_;
+    head_ = std::exchange(other.head_, nullptr);
+    tail_ = std::exchange(other.tail_, nullptr);
+    level_ = std::exchange(other.level_, 1);
+    length_ = std::exchange(other.length_, 0);
+
+    other.reset_empty();
+    return *this;
+}
+
 SkipList::~SkipList()
 {
-    auto* current = head_;
-    Node* next;
-    while (current) {
-        next = current->next(0);
-        destroy_node(current);
-        current = next;
-    }
+    clear_nodes();
 }
 
 void SkipList::insert(double score, std::string_view element)
@@ -417,6 +438,30 @@ void SkipList::destroy_node(Node* node) noexcept
     std::destroy_at(node);
     auto total_size = sizeof(Node) + level * sizeof(Level);
     resource_->deallocate(node, total_size, alignof(Node));
+}
+
+void SkipList::clear_nodes() noexcept
+{
+    auto* current = head_;
+    Node* next;
+    while (current) {
+        next = current->next(0);
+        destroy_node(current);
+        current = next;
+    }
+
+    head_ = nullptr;
+    tail_ = nullptr;
+    level_ = 1;
+    length_ = 0;
+}
+
+void SkipList::reset_empty()
+{
+    head_ = create_node(MAX_LEVEL, 0.0, "");
+    tail_ = nullptr;
+    level_ = 1;
+    length_ = 0;
 }
 
 void SkipList::erase_node(Node* node, std::array<Node*, MAX_LEVEL>& update)

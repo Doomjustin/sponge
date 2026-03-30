@@ -3,8 +3,11 @@
 
 #include <functional>
 #include <memory_resource>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <variant>
 
 #include <boost/unordered/unordered_node_map.hpp>
 
@@ -18,16 +21,56 @@ class SortedSet {
 public:
     using Score = double;
     using Member = std::string_view;
+    using String = std::pmr::string;
+    using ValueType = std::pair<String, Score>;
+
+    class Iterator {
+    public:
+        auto operator*() const -> ValueType;
+
+        auto operator++() -> Iterator&;
+
+        auto operator++(int) -> Iterator;
+
+        auto operator==(const Iterator& other) const -> bool;
+
+        auto operator!=(const Iterator& other) const -> bool;
+
+    private:
+        friend class SortedSet;
+
+        using BackendIterator = std::variant<ListPack::Iterator, SkipList::Iterator>;
+
+        explicit Iterator(const SortedSet* owner, BackendIterator iter)
+          : owner_{ owner }, iter_{ iter }
+        {}
+
+        const SortedSet* owner_ = nullptr;
+        BackendIterator iter_;
+    };
 
     auto add(Score score, Member member) -> bool;
 
     auto score(Member member) -> std::optional<Score>;
 
+    auto contains(Member member) -> bool;
+
+    auto erase(Member member) -> bool;
+
+    [[nodiscard]]
+    auto size() const -> size_t;
+
+    auto begin() -> Iterator;
+
+    auto end() -> Iterator;
+
+    auto begin() const -> Iterator;
+
+    auto end() const -> Iterator;
+
 private:
-    using String = std::pmr::string;
     using Allocator = std::pmr::polymorphic_allocator<std::pair<String, Score>>;
     using Dict = boost::unordered_node_map<String, Score, PmrStringHash, std::equal_to<>, Allocator>;
-
 
     struct Node {
         Dict dict;
@@ -50,9 +93,9 @@ private:
 
     void upgrade();
 
-    auto extract(ListPack::Iterator iter, AsMemberT as_member) -> std::string_view;
+    auto extract(ListPack::Iterator iter, AsMemberT as_member) const -> String;
 
-    auto extract(ListPack::Iterator iter, AsScoreT as_score) -> Score;
+    auto extract(ListPack::Iterator iter, AsScoreT as_score) const -> Score;
 }; 
 
 } // namespace spg::redis

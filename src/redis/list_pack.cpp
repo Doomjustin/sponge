@@ -471,10 +471,20 @@ void ListPack::push_back(std::string_view view)
             return push_back(*res);
     }   
 
-    buffer_.pop_back(); 
+    buffer_.pop_back();
     auto iter = encode(std::back_inserter(buffer_), view);
     *iter = END_OF_BUFFER;
-    
+
+    increase_num_elements(1);
+    update_total_bytes();
+}
+
+void ListPack::push_back_string(std::string_view view)
+{
+    buffer_.pop_back();
+    auto iter = encode(std::back_inserter(buffer_), view);
+    *iter = END_OF_BUFFER;
+
     increase_num_elements(1);
     update_total_bytes();
 }
@@ -499,6 +509,15 @@ void ListPack::insert(Iterator pos, std::string_view view)
             return insert(pos, *res);
     }
 
+    // 中间插入时无需重写 EOF，末尾 EOF 已由现有 buffer 维护。
+    encode(std::inserter(buffer_, pos.iter_), view);
+
+    increase_num_elements(1);
+    update_total_bytes();
+}
+
+void ListPack::insert_string(Iterator pos, std::string_view view)
+{
     // 中间插入时无需重写 EOF，末尾 EOF 已由现有 buffer 维护。
     encode(std::inserter(buffer_, pos.iter_), view);
 
@@ -566,9 +585,23 @@ auto ListPack::begin() noexcept -> Iterator
 }
 
 [[nodiscard]]
+auto ListPack::begin() const noexcept -> Iterator
+{
+    auto& mutable_buffer = const_cast<std::pmr::vector<std::byte>&>(buffer_);
+    return Iterator{ mutable_buffer.begin() + HEADER_SIZE };
+}
+
+[[nodiscard]]
 auto ListPack::end() noexcept -> Iterator
 {
     return Iterator{ buffer_.end() - 1 }; // 指向 EOF
+}
+
+[[nodiscard]]
+auto ListPack::end() const noexcept -> Iterator
+{
+    auto& mutable_buffer = const_cast<std::pmr::vector<std::byte>&>(buffer_);
+    return Iterator{ mutable_buffer.end() - 1 }; // 指向 EOF
 }
 
 [[nodiscard]]
@@ -584,11 +617,35 @@ auto ListPack::rbegin() noexcept -> ReverseIterator
 }
 
 [[nodiscard]]
+auto ListPack::rbegin() const noexcept -> ReverseIterator
+{
+    auto& mutable_buffer = const_cast<std::pmr::vector<std::byte>&>(buffer_);
+    if (mutable_buffer.size() == HEADER_SIZE + 1)
+        return rend();
+
+    auto eof = mutable_buffer.end() - 1;
+    auto entry_size = entry_size_of(eof, from_backlen);
+    auto backlen_size = backlen_size_for(entry_size);
+    return ReverseIterator{ eof - (entry_size + backlen_size) };
+}
+
+[[nodiscard]]
 auto ListPack::rend() noexcept -> ReverseIterator
 {
     auto first = buffer_.begin() + HEADER_SIZE;
 
     // 与 ReverseIterator::operator++ 在首元素位置的前移规则保持一致。
+    auto entry_size = entry_size_of(first, from_backlen);
+    auto backlen_size = backlen_size_for(entry_size);
+    return ReverseIterator{ first - (entry_size + backlen_size) };
+}
+
+[[nodiscard]]
+auto ListPack::rend() const noexcept -> ReverseIterator
+{
+    auto& mutable_buffer = const_cast<std::pmr::vector<std::byte>&>(buffer_);
+    auto first = mutable_buffer.begin() + HEADER_SIZE;
+
     auto entry_size = entry_size_of(first, from_backlen);
     auto backlen_size = backlen_size_for(entry_size);
     return ReverseIterator{ first - (entry_size + backlen_size) };

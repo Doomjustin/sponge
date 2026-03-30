@@ -29,6 +29,150 @@ OUTPUT_DIR=benchmark-results/redis-debug bash scripts/redis_benchmark_matrix.sh
 - ZADD / ZSCORE
 - DBSIZE / FLUSHALL / BGREWRITEAOF
 
+# 2026-03-31 EverySec 实测（AOF 策略修复后）
+
+本轮在相同机器上重新测试，核心变更是把 AOF 从“每条写请求都 `fdatasync`”改为“每秒后台 `fdatasync` 一次”（等价于 Redis 常见的 everysec 策略）。
+
+- 目标：`127.0.0.1:26379`
+- 构建：`RelWithDebInfo`
+- 压测工具：Docker `redis:7 redis-benchmark`
+- 输出目录：`benchmark-results/sponge-20260331-everysec-2`
+
+## 基线 SET / GET
+
+命令：`redis-benchmark -c 50 -n 2000000 -P 256 -r 100000 -t set,get`
+
+| 操作 | throughput | p50 | p95 | p99 |
+|:---:|:----------:|:---:|:---:|:---:|
+| SET | 5.87M ops/s | 0.943ms | 1.903ms | 2.351ms |
+| GET | 7.84M ops/s | 0.855ms | 0.959ms | 1.103ms |
+
+对比修复前（`fdatasync per write`）的异常值：SET 从约 `71K ops/s` 恢复到 `5.87M ops/s`。
+
+## 不同 payload（CSV）
+
+| payload | SET throughput | GET throughput |
+|:-------:|:--------------:|:--------------:|
+| 16B | 3.68M ops/s | 5.53M ops/s |
+| 256B | 1.37M ops/s | 4.85M ops/s |
+| 1KB | 434K ops/s | 1.89M ops/s |
+| 4KB | 74.9K ops/s | 656K ops/s |
+| 16KB | 34.9K ops/s | 233K ops/s |
+
+## 命令级结果（含本轮新增命令）
+
+| 命令 | throughput |
+|:---:|:----------:|
+| EXISTS | 3.88M ops/s |
+| TYPE | 2.35M ops/s |
+| STRLEN | 2.69M ops/s |
+| DEL | 1.39M ops/s |
+| EXPIRE | 2.35M ops/s |
+| TTL | 2.28M ops/s |
+| PERSIST | 2.27M ops/s |
+| RENAME | 709K ops/s |
+| MSET | 2.15M ops/s |
+| MGET | 1.66M ops/s |
+| INCR | 2.50M ops/s |
+| APPEND | 2.46M ops/s |
+| HSET | 2.59M ops/s |
+| HGET | 2.29M ops/s |
+| HLEN | 2.50M ops/s |
+| HGETALL | 2.01M ops/s |
+| HKEYS | 2.10M ops/s |
+| HVALS | 2.13M ops/s |
+| HEXISTS | 2.50M ops/s |
+| LPUSH | 2.48M ops/s |
+| RPUSH | 2.40M ops/s |
+| LLEN | 2.40M ops/s |
+| LRANGE | 2.00M ops/s |
+| LINDEX | 2.34M ops/s |
+| LPOP | 2.42M ops/s |
+| RPOP | 2.19M ops/s |
+| ZADD | 311K ops/s |
+| ZSCORE | 375K ops/s |
+| ZCARD | 1.33M ops/s |
+| ZRANGE | 813K ops/s |
+| ZCOUNT | 376K ops/s |
+| ZRANK | 321K ops/s |
+| ZREM | 379K ops/s |
+| DBSIZE | 9.01K ops/s |
+| FLUSHALL | 211 ops/s |
+| BGREWRITEAOF | 2.5K ops/s |
+
+原始输出文件可直接查看：
+
+- `benchmark-results/sponge-20260331-everysec-2`
+
+# 2026-03-31 EverySec 对比（Sponge vs Native Redis）
+
+同机、同参数对照：
+
+- Sponge：`benchmark-results/sponge-20260331-everysec-2`（26379）
+- Native Redis：`benchmark-results/redis-native-20260331-everysec-3`（6379）
+
+## 基线 SET / GET
+
+| 操作 | Native Redis | Sponge | Sponge / Native |
+|:---:|:------------:|:------:|:---------------:|
+| SET | 1.23M ops/s | 5.87M ops/s | **4.77x** |
+| GET | 2.42M ops/s | 7.84M ops/s | **3.25x** |
+
+## 不同 payload
+
+| payload | 操作 | Native Redis | Sponge | Sponge / Native |
+|:-------:|:---:|:------------:|:------:|:---------------:|
+| 16B | SET | 1.14M | 3.68M | **3.24x** |
+| 16B | GET | 2.09M | 5.53M | **2.65x** |
+| 256B | SET | 726K | 1.37M | **1.89x** |
+| 256B | GET | 1.68M | 4.85M | **2.90x** |
+| 1KB | SET | 385K | 434K | **1.13x** |
+| 1KB | GET | 988K | 1.89M | **1.92x** |
+| 4KB | SET | 119K | 74.9K | **0.63x** |
+| 4KB | GET | 446K | 656K | **1.47x** |
+| 16KB | SET | 40.5K | 34.9K | **0.86x** |
+| 16KB | GET | 189K | 233K | **1.23x** |
+
+## 命令级对比（throughput）
+
+| 命令 | Native Redis | Sponge | Sponge / Native |
+|:---:|:------------:|:------:|:---------------:|
+| TYPE | 1.52M | 2.35M | **1.54x** |
+| STRLEN | 1.72M | 2.69M | **1.56x** |
+| DEL | 968K | 1.39M | **1.44x** |
+| EXPIRE | 772K | 2.35M | **3.04x** |
+| TTL | 1.45M | 2.28M | **1.58x** |
+| PERSIST | 1.24M | 2.27M | **1.83x** |
+| MSET | 660K | 2.15M | **3.26x** |
+| MGET | 1.06M | 1.66M | **1.57x** |
+| INCR | 904K | 2.50M | **2.77x** |
+| APPEND | 845K | 2.46M | **2.91x** |
+| HSET | 769K | 2.59M | **3.36x** |
+| HGET | 1.47M | 2.29M | **1.56x** |
+| HLEN | 1.54M | 2.50M | **1.62x** |
+| HGETALL | 1.42M | 2.01M | **1.42x** |
+| HKEYS | 1.55M | 2.10M | **1.36x** |
+| HVALS | 1.53M | 2.13M | **1.39x** |
+| HEXISTS | 1.53M | 2.50M | **1.63x** |
+| LPUSH | 794K | 2.48M | **3.12x** |
+| RPUSH | 843K | 2.40M | **2.85x** |
+| LLEN | 1.48M | 2.40M | **1.62x** |
+| LRANGE | 1.11M | 2.00M | **1.80x** |
+| LINDEX | 1.33M | 2.34M | **1.77x** |
+| LPOP | 1.07M | 2.42M | **2.27x** |
+| RPOP | 1.08M | 2.19M | **2.04x** |
+| ZADD | 437K | 311K | **0.71x** |
+| ZSCORE | 676K | 375K | **0.55x** |
+| ZCARD | 1.01M | 1.33M | **1.31x** |
+| ZRANGE | 534K | 813K | **1.52x** |
+| ZCOUNT | 634K | 376K | **0.59x** |
+| ZRANK | 625K | 321K | **0.51x** |
+| ZREM | 667K | 379K | **0.57x** |
+| DBSIZE | 19.2K | 9.0K | **0.47x** |
+| FLUSHALL | 124.5 | 211.0 | **1.69x** |
+
+备注：Native Redis 的 `RENAME` 在随机键压测下会出现 `ERR no such key`，该项不纳入吞吐对照。
+
 # 2026-03-30 Live 对比
 
 以下结果来自同一台机器上的 live 实测：
