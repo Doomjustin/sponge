@@ -7,6 +7,12 @@ spg_add_module(common common
         PkgConfig::LIBURING
 )
 
+spg_add_module(sync sync
+    PUBLIC
+        sponge::common
+        Microsoft.GSL::GSL
+)
+
 spg_add_module(redis redis
     PUBLIC
         sponge::common
