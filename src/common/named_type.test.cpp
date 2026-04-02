@@ -108,6 +108,19 @@ TEST_CASE("Arithmetic skill 应支持同名类型的加法赋值", "[common][nam
 	REQUIRE(lhs.get() == 15);
 }
 
+TEST_CASE("Arithmetic skill 应包含自增与自减能力", "[common][named_type]")
+{
+	Distance value{8};
+
+	const auto before_inc = value++;
+	REQUIRE(before_inc.get() == 8);
+	REQUIRE(value.get() == 9);
+
+	const auto after_dec = --value;
+	REQUIRE(after_dec.get() == 8);
+	REQUIRE(value.get() == 8);
+}
+
 TEST_CASE("Arithmetic skill 应支持同名类型的减法赋值", "[common][named_type]")
 {
 	Distance lhs{10};

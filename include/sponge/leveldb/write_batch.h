@@ -62,7 +62,7 @@ public:
     }
 
     template<WriteBatchHandler Handler>
-    void iterate(Handler&& handler)
+    void iterate(Handler&& handler) const
     {
         assert(rep_.size() >= HEADER_SIZE);   
 

@@ -164,8 +164,10 @@ struct RemainderAssignable {
 };
 
 template<typename Derived>
-struct Arithmetic 
-  : Addable<Derived>,
+struct Arithmetic :
+    Decrementable<Derived>,
+    Incrementable<Derived>,
+    Addable<Derived>,
     Subtractable<Derived>,
     Multilabel<Derived>,
     Dividable<Derived>,

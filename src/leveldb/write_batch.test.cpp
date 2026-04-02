@@ -88,3 +88,16 @@ TEST_CASE("WriteBatch 在 count 大于实际记录数时 iterate 应抛出 Corru
 	REQUIRE_THROWS_AS(batch.iterate(handler), CorruptionException);
 }
 
+TEST_CASE("WriteBatch iterate 在 const 对象上也应可回放记录", "[leveldb][write_batch]")
+{
+	WriteBatch batch;
+	batch.put("k", "v");
+
+	const auto& const_batch = batch;
+	RecordingHandler handler;
+	const_batch.iterate(handler);
+
+	REQUIRE(handler.puts == std::vector<std::pair<std::string, std::string>>{ { "k", "v" } });
+	REQUIRE(handler.erases.empty());
+}
+
