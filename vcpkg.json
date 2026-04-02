@@ -10,7 +10,8 @@
         "boost-unordered",
         "ctre",
         "glaze",
-        "liburing"
+        "liburing",
+        "crc32c"
     ],
     "name": "sponge",
     "version": "0.0.1",

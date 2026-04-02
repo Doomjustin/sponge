@@ -29,6 +29,7 @@ spg_add_module(leveldb leveldb
         sponge::common
         fmt::fmt
         Microsoft.GSL::GSL
+        Crc32c::crc32c
 )
 
 spg_add_module(http http

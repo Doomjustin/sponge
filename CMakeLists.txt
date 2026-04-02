@@ -22,6 +22,8 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(ctre CONFIG REQUIRED)
+find_package(Crc32c CONFIG REQUIRED)
+
 find_package(Boost REQUIRED 
     COMPONENTS 
         asio 
