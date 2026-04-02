@@ -48,7 +48,7 @@ TEST_CASE("random種子梯序阎列应是确定性的", "[random]")
     REQUIRE(first == second);
 }
 
-TEST_CASE("random bernoulli and binomial output valid ranges", "[spg_base_random]")
+TEST_CASE("random bernoulli 和 binomial 应输出有效范围", "[random]")
 {
     random::seed(24680U);
 
@@ -62,7 +62,7 @@ TEST_CASE("random bernoulli and binomial output valid ranges", "[spg_base_random
     }
 }
 
-TEST_CASE("random normal and exponential produce finite values", "[spg_base_random]")
+TEST_CASE("random normal 和 exponential 应产生有限值", "[random]")
 {
     random::seed(13579U);
 
@@ -76,7 +76,7 @@ TEST_CASE("random normal and exponential produce finite values", "[spg_base_rand
     }
 }
 
-TEST_CASE("random shuffle preserves elements", "[spg_base_random]")
+TEST_CASE("random shuffle 应保持元素", "[random]")
 {
     random::seed(112233U);
 
@@ -90,7 +90,7 @@ TEST_CASE("random shuffle preserves elements", "[spg_base_random]")
     REQUIRE(values == original);
 }
 
-TEST_CASE("random choice and sample respect source set", "[spg_base_random]")
+TEST_CASE("random choice 和 sample 应遵重源集合", "[random]")
 {
     random::seed(556677U);
 
@@ -106,7 +106,7 @@ TEST_CASE("random choice and sample respect source set", "[spg_base_random]")
         REQUIRE(std::ranges::find(values, v) != values.end());
 }
 
-TEST_CASE("random thread_local engine gives same sequence with same seed", "[spg_base_random]")
+TEST_CASE("random 线程本地引擎应在相同种子下产生相同梯序", "[random]")
 {
     std::array<int, 8> seq_a{};
     std::array<int, 8> seq_b{};
@@ -134,7 +134,7 @@ TEST_CASE("random thread_local engine gives same sequence with same seed", "[spg
     REQUIRE(seq_a == seq_b);
 }
 
-TEST_CASE("random child thread does not affect main thread engine state", "[spg_base_random]")
+TEST_CASE("random 子线程不应影响主线程引擎状态", "[random]")
 {
     random::seed(777U);
     auto first = random::uniform(1000000);

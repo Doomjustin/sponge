@@ -56,7 +56,7 @@ TEST_CASE("numeric_cast 应处理大整数", "[utility]")
     REQUIRE(*res == 9223372036854775807LL);
 }
 
-TEST_CASE("numeric_cast 对于无符罗鱼类型应拒绝负整数", "[utility]")
+TEST_CASE("numeric_cast 对于无符号整数类型应拒绝负整数", "[utility]")
 {
     auto res = numeric_cast<unsigned int>("-1");
 
@@ -80,8 +80,7 @@ TEST_CASE("numeric_cast 应处理仅空格字符串", "[utility]")
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast 应报告部分有效数字的无效",
-          "[utility]")
+TEST_CASE("numeric_cast 应报告部分有效数字的无效", "[utility]")
 {
     // numeric_cast 要求整串完全匹配，因此 "123abc" 应视为非法。
     auto res = numeric_cast<int>("123abc");
@@ -90,68 +89,56 @@ TEST_CASE("numeric_cast 应报告部分有效数字的无效",
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("to_uppercase 应佰改小写字母并不加处理靠字符",
-          "[utility]")
+TEST_CASE("to_uppercase 应将小写字母改为大写并不改下于性文字", "[utility]")
 {
     auto result{ to_uppercase("aB1-?z") };
 
     REQUIRE(result == "AB1-?Z");
 }
 
-TEST_CASE("to_lowercase converts uppercase and keeps non-letters",
-          "[spg_base_utility][to_lowercase]")
-{
+TEST_CASE("to_lowercase 应佰改大写字母并不加处理靠字符", "[utility]") {
     auto result{ to_lowercase("Ab1-?Z") };
 
     REQUIRE(result == "ab1-?z");
 }
 
-TEST_CASE("to_uppercase with empty string returns empty", "[spg_base_utility][to_uppercase]")
-{
+TEST_CASE("to_uppercase 对于空字符串应返回空", "[utility]") {
     auto result{ to_uppercase("") };
 
     REQUIRE(result == "");
 }
 
-TEST_CASE("to_lowercase with empty string returns empty", "[spg_base_utility][to_lowercase]")
-{
+TEST_CASE("to_lowercase 对于空字符串应返回空", "[utility]") {
     auto result{ to_lowercase("") };
 
     REQUIRE(result == "");
 }
 
-TEST_CASE("to_uppercase preserves already uppercase", "[spg_base_utility][to_uppercase]")
-{
+TEST_CASE("to_uppercase 应保持已有的大写字母", "[utility]") {
     auto result{ to_uppercase("HELLO WORLD") };
 
     REQUIRE(result == "HELLO WORLD");
 }
 
-TEST_CASE("to_lowercase preserves already lowercase", "[spg_base_utility][to_lowercase]")
-{
+TEST_CASE("to_lowercase 应保持已有的小写字母", "[utility]") {
     auto result{ to_lowercase("hello world") };
 
     REQUIRE(result == "hello world");
 }
 
-TEST_CASE("to_uppercase handles special characters and numbers",
-          "[spg_base_utility][to_uppercase]")
-{
+TEST_CASE("to_uppercase 应处理特殊字符和数字", "[utility]") {
     auto result{ to_uppercase("aBc!@#$%^&*()123XyZ") };
 
     REQUIRE(result == "ABC!@#$%^&*()123XYZ");
 }
 
-TEST_CASE("to_lowercase handles special characters and numbers",
-          "[spg_base_utility][to_lowercase]")
-{
+TEST_CASE("to_lowercase 应处理特殊字符和数字", "[utility]") {
     auto result{ to_lowercase("aBc!@#$%^&*()123XyZ") };
 
     REQUIRE(result == "abc!@#$%^&*()123xyz");
 }
 
-TEST_CASE("string_cast converts floating point and can parse back", "[spg_base_utility][string_cast]")
-{
+TEST_CASE("string_cast 应转换浮点数并能解析回来", "[utility]") {
     const double input = 3.141592653589793;
     auto text = string_cast(input);
 
