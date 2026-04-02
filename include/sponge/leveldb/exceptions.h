@@ -32,6 +32,15 @@ public:
     {}
 };
 
+
+class CorruptionException : public LevelDBException {
+public:
+    template<typename... Args>
+    explicit CorruptionException(const std::string_view fmt, Args&&... args)
+      : LevelDBException{ xformat("Corruption Exception: {}", xformat(fmt, std::forward<Args>(args)...)) }
+    {}
+};
+
 } // namespace spg::leveldb
 
 #endif // SPONGE_LEVELDB_EXCEPTIONS_H
