@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <sponge/named_type.h>
+
 namespace spg::leveldb {
 
 enum class ValueType : uint8_t { 
@@ -10,7 +12,10 @@ enum class ValueType : uint8_t {
     Value = 1 
 };
 
-using SequenceNumber = uint64_t;
+using SequenceNumber = NamedType<std::uint64_t,
+                                 "SequenceNumber",
+                                 Comparable,
+                                 Arithmetic>;
 
 } // namespace spg::leveldb
 

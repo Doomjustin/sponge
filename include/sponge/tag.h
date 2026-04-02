@@ -14,12 +14,17 @@ struct ReadWriteTag {};
 struct ByRankTag {};
 struct ExpandGreedyTag{};
 struct ByHashTag {};
+struct ToLastT {};
+struct ToFirstT {};
+
 
 inline constexpr UnlockTag unlock{};
 inline constexpr ReadOnlyTag read_only{};
 inline constexpr ReadWriteTag read_write{};
 inline constexpr ByRankTag by_rank{};
 inline constexpr ExpandGreedyTag greedy{};
+inline constexpr ToFirstT to_first{};
+inline constexpr ToLastT to_last{};
 
 } // namespace spg
 

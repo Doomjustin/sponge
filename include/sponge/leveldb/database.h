@@ -1,12 +1,10 @@
 #ifndef SPONGE_LEVELDB_DATABASE_H
 #define SPONGE_LEVELDB_DATABASE_H
 
-#include <expected>
 #include <memory>
+#include <optional>
 
-#include "iterator.h"
 #include "options.h"
-#include "status.h"
 
 namespace spg::leveldb {
 
@@ -17,21 +15,15 @@ class Snapshot;
 struct DB {
     virtual ~DB() = default;
 
-    virtual auto put(const WriteOptions& options, std::string_view key, std::string_view value) -> std::expected<void, Status> = 0;
+    static auto open(const Options& options, std::string_view db_path) -> std::unique_ptr<DB>;
 
-    virtual auto remove(const WriteOptions& options, std::string_view key) -> std::expected<void, Status> = 0;
+    virtual void put(const WriteOptions& options, std::string_view key, std::string_view value) = 0;
 
-    virtual auto get(const ReadOptions& options, std::string_view key) -> std::expected<std::string, Status> = 0;
+    virtual void remove(const WriteOptions& options, std::string_view key) = 0;
 
-    virtual auto write(const WriteBatch& batch) -> std::expected<void, Status> = 0;
+    virtual auto get(const ReadOptions& options, std::string_view key) -> std::optional<std::string> = 0;
 
-    virtual auto iterator(const ReadOptions& options) -> std::unique_ptr<Iterator> = 0;
-
-    virtual auto snapshot() -> const Snapshot* = 0;
-
-    virtual void release_snapshot(const Snapshot* snapshot) = 0;
-
-    static auto open(const Options& options, std::string_view db_path) -> std::expected<std::unique_ptr<DB>, Status>;
+    virtual void write(const WriteBatch& batch) = 0;
 };
 
 } // namespace spg::leveldb
