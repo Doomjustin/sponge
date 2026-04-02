@@ -16,6 +16,14 @@
 
 namespace spg::leveldb {
 
+template<typename C, typename T,  typename Key>
+concept is_transparent_comparable = requires(C comparator, const T& value, const Key& key) 
+{
+    { comparator(value, key) } -> std::convertible_to<std::strong_ordering>;
+    { comparator(key, value) } -> std::convertible_to<std::strong_ordering>;
+};
+
+
 template <typename T, typename Comparator>
 class SkipList {
     class Node;
@@ -88,8 +96,7 @@ public:
 
         const auto new_height = random_height();
 
-        if (auto current_height = max_height_.load(std::memory_order_relaxed);
-            new_height > current_height)
+        if (auto current_height = max_height_.load(std::memory_order_relaxed); new_height > current_height)
         {
             for (int i = current_height; i < new_height; ++i)
                 prev[i] = head_;
@@ -120,9 +127,18 @@ public:
         return is_equal(value, node);
     }
 
-    auto iterator() noexcept -> Iterator
+    auto iterator() const noexcept -> Iterator
     {
         return Iterator{ *this };
+    }
+
+    template<typename Key>
+        requires is_transparent_comparable<Comparator, T, Key>
+    auto find(const Key& key) const noexcept -> Iterator
+    {
+        auto it = iterator();
+        it.seek(key);
+        return it;
     }
 
 private:
@@ -141,14 +157,18 @@ private:
         return std::min(MAX_HEIGHT, random::geometric_failure(p) + 1);
     }
 
-    auto is_after_than(const T& value, const Node* node) const noexcept -> bool
+    template<typename Key>
+        requires is_transparent_comparable<Comparator, T, Key>
+    auto is_after_than(const Key& key, const Node* node) const noexcept -> bool
     {
-        return node && comparator_(node->value, value) < 0;
+        return node && comparator_(node->value, key) < 0;
     }
 
-    auto is_equal(const T& value, const Node* node) const noexcept -> bool
+    template<typename Key>
+        requires is_transparent_comparable<Comparator, T, Key>
+    auto is_equal(const Key& key, const Node* node) const noexcept -> bool
     {
-        return node && comparator_(node->value, value) == 0;
+        return node && comparator_(node->value, key) == 0;
     }
 
     auto allocate_node(const T& value, int height) -> Node*
@@ -160,7 +180,9 @@ private:
         return new (memory) Node{ value, height };
     }
 
-    auto find_greater_or_equal(const T& value, std::span<Node*> prev) const noexcept -> Node*
+    template<typename Key>
+        requires is_transparent_comparable<Comparator, T, Key>
+    auto find_greater_or_equal(const Key& key, std::span<Node*> prev) const noexcept -> Node*
     {
         assert(prev.empty() || prev.size() == MAX_HEIGHT);
 
@@ -168,7 +190,7 @@ private:
         auto level = max_height_.load(std::memory_order_relaxed) - 1;
         while (true) {
             auto* next = x->next(level);
-            if (is_after_than(value, next)) {
+            if (is_after_than(key, next)) {
                 x = next;
             }
             else {
@@ -185,14 +207,16 @@ private:
         std::unreachable();
     }
 
-    auto find_less_than(const T& value) const noexcept -> Node*
+    template<typename Key>
+        requires is_transparent_comparable<Comparator, T, Key>
+    auto find_less_than(const Key& key) const noexcept -> Node*
     {
         auto* x = head_;
         auto level = max_height_.load(std::memory_order_relaxed) - 1;
 
         while (true) {
             auto* next = x->next(level);
-            if (!next || comparator_(next->value, value) >= 0) {
+            if (!next || comparator_(next->value, key) >= 0) {
                 if (level == 0)
                     return x;
 
@@ -231,7 +255,7 @@ private:
 template<typename T, typename C>
 class SkipList<T, C>::Iterator {
 public:
-    explicit Iterator(SkipList<T, C>& skip_list)
+    explicit Iterator(const SkipList<T, C>& skip_list)
       : skip_list_{ skip_list }
     {}
 
@@ -242,7 +266,7 @@ public:
     }
 
     [[nodiscard]]
-    auto value() const noexcept -> T
+    auto key() const noexcept -> T
     {
         assert(is_valid());
         return current_->value;
@@ -257,14 +281,16 @@ public:
     void prev() noexcept
     {
         assert(is_valid());
-        current_ = skip_list_.find_less_than(value());
+        current_ = skip_list_.find_less_than(key());
         if (current_ == skip_list_.head_)
             current_ = nullptr;
     }
 
-    void seek(const T& value) noexcept
+    template<typename Key>
+        requires is_transparent_comparable<C, T, Key>
+    void seek(const Key& key) noexcept
     {
-        current_ = skip_list_.find_greater_or_equal(value, {});
+        current_ = skip_list_.find_greater_or_equal(key, {});
     }
 
     void seek([[maybe_unused]] ToFirstT) noexcept
@@ -280,7 +306,7 @@ public:
     }
 
 private:
-    SkipList<T, C>& skip_list_;
+    const SkipList<T, C>& skip_list_;
     Node* current_ = nullptr;
 };
 
