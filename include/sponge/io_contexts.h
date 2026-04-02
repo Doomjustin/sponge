@@ -39,8 +39,6 @@ private:
     std::pmr::vector<std::shared_ptr<Context>> io_contexts_;
     std::pmr::vector<std::jthread> threads_;
     std::pmr::list<WorkGuard> works_;
-
-    // void join_threads();
 };
 
 } // namespace spg

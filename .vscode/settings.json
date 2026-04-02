@@ -18,8 +18,4 @@
     },
     "python-envs.defaultEnvManager": "ms-python.python:system",
     "C_Cpp.intelliSenseEngine": "disabled",
-    "cSpell.words": [
-        "buildsystems",
-        "ctest"
-    ]
 }
