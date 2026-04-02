@@ -8,7 +8,7 @@
 
 using namespace spg;
 
-TEST_CASE("numeric_cast parses valid integer", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应转换有效的整数", "[utility]")
 {
     auto res = numeric_cast<int>("123");
 
@@ -16,7 +16,7 @@ TEST_CASE("numeric_cast parses valid integer", "[spg_base_utility][numeric_cast]
     REQUIRE(*res == 123);
 }
 
-TEST_CASE("numeric_cast reports invalid_argument", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应报告 invalid_argument", "[utility]")
 {
     auto res = numeric_cast<int>("abc");
 
@@ -24,7 +24,7 @@ TEST_CASE("numeric_cast reports invalid_argument", "[spg_base_utility][numeric_c
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast reports out_of_range", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应报告 out_of_range", "[utility]")
 {
     auto res = numeric_cast<std::int8_t>("200");
 
@@ -32,7 +32,7 @@ TEST_CASE("numeric_cast reports out_of_range", "[spg_base_utility][numeric_cast]
     REQUIRE(res.error() == std::make_error_code(std::errc::result_out_of_range));
 }
 
-TEST_CASE("numeric_cast handles negative integers", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应处理负整数", "[utility]")
 {
     auto res = numeric_cast<int>("-456");
 
@@ -40,7 +40,7 @@ TEST_CASE("numeric_cast handles negative integers", "[spg_base_utility][numeric_
     REQUIRE(*res == -456);
 }
 
-TEST_CASE("numeric_cast handles zero", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应处理零", "[utility]")
 {
     auto res = numeric_cast<int>("0");
 
@@ -48,7 +48,7 @@ TEST_CASE("numeric_cast handles zero", "[spg_base_utility][numeric_cast]")
     REQUIRE(*res == 0);
 }
 
-TEST_CASE("numeric_cast handles large numbers", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应处理大整数", "[utility]")
 {
     auto res = numeric_cast<long long>("9223372036854775807");
 
@@ -56,7 +56,7 @@ TEST_CASE("numeric_cast handles large numbers", "[spg_base_utility][numeric_cast
     REQUIRE(*res == 9223372036854775807LL);
 }
 
-TEST_CASE("numeric_cast with unsigned type rejects negative", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 对于无符罗鱼类型应拒绝负整数", "[utility]")
 {
     auto res = numeric_cast<unsigned int>("-1");
 
@@ -64,7 +64,7 @@ TEST_CASE("numeric_cast with unsigned type rejects negative", "[spg_base_utility
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast handles empty string", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应处理空字符串", "[utility]")
 {
     auto res = numeric_cast<int>("");
 
@@ -72,7 +72,7 @@ TEST_CASE("numeric_cast handles empty string", "[spg_base_utility][numeric_cast]
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast handles whitespace-only string", "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应处理仅空格字符串", "[utility]")
 {
     auto res = numeric_cast<int>("   ");
 
@@ -80,8 +80,8 @@ TEST_CASE("numeric_cast handles whitespace-only string", "[spg_base_utility][num
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast with partial valid number reports invalid_argument",
-          "[spg_base_utility][numeric_cast]")
+TEST_CASE("numeric_cast 应报告部分有效数字的无效",
+          "[utility]")
 {
     // numeric_cast 要求整串完全匹配，因此 "123abc" 应视为非法。
     auto res = numeric_cast<int>("123abc");
@@ -90,8 +90,8 @@ TEST_CASE("numeric_cast with partial valid number reports invalid_argument",
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("to_uppercase converts lowercase and keeps non-letters",
-          "[spg_base_utility][to_uppercase]")
+TEST_CASE("to_uppercase 应佰改小写字母并不加处理靠字符",
+          "[utility]")
 {
     auto result{ to_uppercase("aB1-?z") };
 

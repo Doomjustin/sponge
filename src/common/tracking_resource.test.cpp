@@ -7,8 +7,8 @@
 
 using namespace spg;
 
-TEST_CASE("TrackingMemoryResource tracks allocated memory",
-          "[spg_base_tracking_resource][used_memory]")
+TEST_CASE("TrackingMemoryResource 应追踪已分配内存",
+          "[tracking_resource]")
 {
     TrackingMemoryResource resource{ std::pmr::new_delete_resource() };
 
@@ -26,8 +26,8 @@ TEST_CASE("TrackingMemoryResource tracks allocated memory",
     REQUIRE(resource.used_memory() == 0);
 }
 
-TEST_CASE("TrackingMemoryResource tracks multiple allocations correctly",
-          "[spg_base_tracking_resource][used_memory]")
+TEST_CASE("TrackingMemoryResource 应正确追踪多个分配",
+          "[tracking_resource]")
 {
     TrackingMemoryResource resource{ std::pmr::new_delete_resource() };
 
@@ -47,8 +47,8 @@ TEST_CASE("TrackingMemoryResource tracks multiple allocations correctly",
     REQUIRE(resource.used_memory() == 0);
 }
 
-TEST_CASE("TrackingMemoryResource handles sequential allocation and deallocation",
-          "[spg_base_tracking_resource]")
+TEST_CASE("TrackingMemoryResource 应处理成序分配与释放",
+          "[tracking_resource]")
 {
     TrackingMemoryResource resource{ std::pmr::new_delete_resource() };
 
@@ -71,8 +71,8 @@ TEST_CASE("TrackingMemoryResource handles sequential allocation and deallocation
     REQUIRE(resource.used_memory() == 0);
 }
 
-TEST_CASE("TrackingMemoryResource handles different allocation sizes",
-          "[spg_base_tracking_resource]")
+TEST_CASE("TrackingMemoryResource 应处理不同大小的分配",
+          "[tracking_resource]")
 {
     TrackingMemoryResource resource{ std::pmr::new_delete_resource() };
 

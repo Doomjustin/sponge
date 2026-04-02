@@ -11,7 +11,7 @@
 
 using namespace spg;
 
-TEST_CASE("random uniform integral stays in half-open interval", "[spg_base_random]")
+TEST_CASE("random 一致分布整数应保持在孚开区间内", "[random]")
 {
     random::seed(12345U);
 
@@ -22,7 +22,7 @@ TEST_CASE("random uniform integral stays in half-open interval", "[spg_base_rand
     }
 }
 
-TEST_CASE("random uniform floating stays in interval", "[spg_base_random]")
+TEST_CASE("random 一致分布浮数应保持在区间内", "[random]")
 {
     random::seed(67890U);
 
@@ -33,7 +33,7 @@ TEST_CASE("random uniform floating stays in interval", "[spg_base_random]")
     }
 }
 
-TEST_CASE("random seeded sequence is deterministic", "[spg_base_random]")
+TEST_CASE("random種子梯序阎列应是确定性的", "[random]")
 {
     random::seed(42U);
     std::array<int, 8> first{};

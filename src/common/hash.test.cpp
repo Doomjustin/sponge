@@ -8,17 +8,17 @@
 
 using namespace spg;
 
-TEST_CASE("hash returns same value for identical keys", "[spg_base_hash][hash]")
+TEST_CASE("hash 对相同键值应返回相同哈希值", "[hash]")
 {
     REQUIRE(hash("hello", use_std) == hash("hello", use_std));
 }
 
-TEST_CASE("hash returns different values for different keys", "[spg_base_hash][hash]")
+TEST_CASE("hash 对不同键值应返回不同哈希值", "[hash]")
 {
     REQUIRE(hash("foo", use_std) != hash("bar", use_std));
 }
 
-TEST_CASE("StringHash enables heterogeneous lookup in unordered_map", "[spg_base_hash][StringHash]")
+TEST_CASE("StringHash 在 unordered_map 中支持异构查找", "[hash]")
 {
     std::unordered_map<std::string, int, StringHash, std::equal_to<>> map{};
     map.emplace("key", 42);
@@ -30,8 +30,8 @@ TEST_CASE("StringHash enables heterogeneous lookup in unordered_map", "[spg_base
     REQUIRE(it->second == 42);
 }
 
-TEST_CASE("PmrStringHash enables heterogeneous lookup in unordered_map",
-          "[spg_base_hash][PmrStringHash]")
+TEST_CASE("PmrStringHash 在 unordered_map 中支持异构查找",
+          "[hash]")
 {
     std::pmr::unordered_map<std::pmr::string, int, PmrStringHash, std::equal_to<>> map{};
     map.emplace("key", 99);
@@ -43,7 +43,7 @@ TEST_CASE("PmrStringHash enables heterogeneous lookup in unordered_map",
     REQUIRE(it->second == 99);
 }
 
-TEST_CASE("hash handles empty string", "[spg_base_hash][hash]")
+TEST_CASE("hash 应正确处理空字符串", "[hash]")
 {
     auto hash1 = hash("", use_std);
     auto hash2 = hash("", use_std);
@@ -52,8 +52,8 @@ TEST_CASE("hash handles empty string", "[spg_base_hash][hash]")
     REQUIRE(hash1 != hash("a", use_std));
 }
 
-TEST_CASE("hash with different algorithms produces consistent results",
-          "[spg_base_hash][hash]")
+TEST_CASE("hash 使用不同算法应产生一致结果",
+          "[hash]")
 {
     const std::string test_strings[] = { "test", "hello", "world", "123", "" };
 
@@ -67,7 +67,7 @@ TEST_CASE("hash with different algorithms produces consistent results",
     }
 }
 
-TEST_CASE("hash differentiates similar strings", "[spg_base_hash][hash]")
+TEST_CASE("hash 应区分相似的字符串", "[hash]")
 {
     // Strings with small differences should (likely) have different hashes
     auto h1 = hash("abc", use_std);
@@ -79,8 +79,8 @@ TEST_CASE("hash differentiates similar strings", "[spg_base_hash][hash]")
     REQUIRE(h2 != h3);
 }
 
-TEST_CASE("StringHash with multiple keys enables fast lookups",
-          "[spg_base_hash][StringHash]")
+TEST_CASE("StringHash 使用多个键值应支持快速查找",
+          "[hash]")
 {
     std::unordered_map<std::string, int, StringHash, std::equal_to<>> map{};
 
@@ -103,8 +103,8 @@ TEST_CASE("StringHash with multiple keys enables fast lookups",
     REQUIRE(map.find(missing) == map.end());
 }
 
-TEST_CASE("PmrStringHash with multiple keys enables fast lookups",
-          "[spg_base_hash][PmrStringHash]")
+TEST_CASE("PmrStringHash 使用多个键值应支持快速查找",
+          "[hash]")
 {
     std::pmr::unordered_map<std::pmr::string, int, PmrStringHash, std::equal_to<>> map{};
 
