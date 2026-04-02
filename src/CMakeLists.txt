@@ -1,6 +1,8 @@
 spg_add_module(common common
     PUBLIC
         Microsoft.GSL::GSL
+        fmt::fmt
+        spdlog::spdlog
         Boost::asio
         PkgConfig::LIBURING
 )
