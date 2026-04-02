@@ -1,4 +1,4 @@
-#include <sponge/redis/aof.h>
+#include "aof.h"
 
 #include <atomic>
 #include <cerrno>
@@ -17,10 +17,11 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include <sponge/redis/db_shard.h>
-#include <sponge/redis/ttl_manager.h>
 #include <sponge/tag.h>
 #include <sponge/writable_file.h>
+
+#include "db_shard.h"
+#include "ttl_manager.h"
 
 namespace fs = std::filesystem;
 

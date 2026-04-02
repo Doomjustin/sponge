@@ -3,8 +3,7 @@
 
 #include <boost/asio.hpp>
 
-#include <sponge/redis/application_context.h>
-
+#include "application_context.h"
 #include "reply.h"
 
 namespace spg::redis {

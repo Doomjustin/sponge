@@ -10,9 +10,9 @@
 
 #include <boost/asio.hpp>
 
-#include <sponge/redis/db_shard.h>
 #include <sponge/utility.h>
 
+#include "db_shard.h"
 #include "reply.h"
 
 namespace asio = boost::asio;

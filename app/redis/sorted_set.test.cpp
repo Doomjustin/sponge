@@ -1,4 +1,4 @@
-#include <sponge/redis/sorted_set.h>
+#include "sorted_set.h"
 
 #include <vector>
 

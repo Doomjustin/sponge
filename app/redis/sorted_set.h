@@ -11,9 +11,10 @@
 
 #include <boost/unordered/unordered_node_map.hpp>
 
-#include <sponge/redis/list_pack.h>
-#include <sponge/redis/skip_list.h>
 #include <sponge/utility.h>
+
+#include "list_pack.h"
+#include "skip_list.h"
 
 namespace spg::redis {
 

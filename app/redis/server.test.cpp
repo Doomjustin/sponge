@@ -1,4 +1,3 @@
-#include <sponge/redis/application.h>
+#include "server.h"
 
 #include <catch2/catch_test_macros.hpp>
-

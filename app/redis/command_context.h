@@ -3,12 +3,12 @@
 
 #include <string>
 
-#include <sponge/redis/application_context.h>
-#include <sponge/redis/db_shard.h>
 #include <sponge/tag.h>
+#include <sponge/utility.h>
 
+#include "application_context.h"
+#include "db_shard.h"
 #include "reply.h"
-#include "sponge/utility.h"
 
 namespace spg::redis {
 

@@ -1,4 +1,4 @@
-#include <sponge/redis/skip_list.h>
+#include "skip_list.h"
 
 #include <algorithm>
 #include <string_view>
