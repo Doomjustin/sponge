@@ -19,4 +19,15 @@ using SequenceNumber = NamedType<std::uint64_t,
 
 } // namespace spg::leveldb
 
+namespace spg::leveldb::literals {
+
+[[nodiscard]]
+constexpr auto operator""_seq(unsigned long long value) noexcept -> SequenceNumber
+{
+    // 显式强转，消除从 unsigned long long 到 uint64_t 的潜在警告
+    return SequenceNumber{ static_cast<std::uint64_t>(value) };
+}
+
+} // namespace spg::leveldb::literals
+
 #endif // SPONGE_LEVELDB_FORMATS_H

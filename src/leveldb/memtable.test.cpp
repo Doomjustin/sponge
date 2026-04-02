@@ -8,14 +8,15 @@
 using namespace std::literals;
 
 using namespace spg::leveldb;
+using namespace spg::leveldb::literals;
 
 TEST_CASE("MemTable get 在命中 value 记录时应返回对应值", "[leveldb][memtable]")
 {
 	MemTable table;
 
-	table.add(SequenceNumber{ 7 }, ValueType::Value, "alpha", "v1");
+	table.add(7_seq, ValueType::Value, "alpha", "v1");
 
-	const auto result = table.get("alpha", SequenceNumber{ 7 });
+	const auto result = table.get("alpha", 7_seq);
 	REQUIRE(std::holds_alternative<std::string_view>(result));
 	CHECK(std::get<std::string_view>(result) == "v1"sv);
 }
@@ -24,7 +25,7 @@ TEST_CASE("MemTable get 在 key 不存在时应返回 NotFound", "[leveldb][memt
 {
 	MemTable table;
 
-	const auto result = table.get("missing", SequenceNumber{ 1 });
+	const auto result = table.get("missing", 1_seq);
 	REQUIRE(std::holds_alternative<NotFound>(result));
 }
 
@@ -32,14 +33,14 @@ TEST_CASE("MemTable get 应返回不晚于查询序号的最新版本", "[leveld
 {
 	MemTable table;
 
-	table.add(SequenceNumber{ 3 }, ValueType::Value, "alpha", "old");
-	table.add(SequenceNumber{ 9 }, ValueType::Value, "alpha", "new");
+	table.add(3_seq, ValueType::Value, "alpha", "old");
+	table.add(9_seq, ValueType::Value, "alpha", "new");
 
-	const auto latest = table.get("alpha", SequenceNumber{ 9 });
+	const auto latest = table.get("alpha", 9_seq);
 	REQUIRE(std::holds_alternative<std::string_view>(latest));
 	CHECK(std::get<std::string_view>(latest) == "new"sv);
 
-	const auto historical = table.get("alpha", SequenceNumber{ 3 });
+	const auto historical = table.get("alpha", 3_seq);
 	REQUIRE(std::holds_alternative<std::string_view>(historical));
 	CHECK(std::get<std::string_view>(historical) == "old"sv);
 }
@@ -48,13 +49,13 @@ TEST_CASE("MemTable get 在最新版本是删除标记时应返回 Deleted", "[l
 {
 	MemTable table;
 
-	table.add(SequenceNumber{ 3 }, ValueType::Value, "alpha", "old");
-	table.add(SequenceNumber{ 9 }, ValueType::Deletion, "alpha", "");
+	table.add(3_seq, ValueType::Value, "alpha", "old");
+	table.add(9_seq, ValueType::Deletion, "alpha", "");
 
-	const auto deleted = table.get("alpha", SequenceNumber{ 9 });
+	const auto deleted = table.get("alpha", 9_seq);
 	REQUIRE(std::holds_alternative<Deleted>(deleted));
 
-	const auto historical = table.get("alpha", SequenceNumber{ 3 });
+	const auto historical = table.get("alpha", 3_seq);
 	REQUIRE(std::holds_alternative<std::string_view>(historical));
 	CHECK(std::get<std::string_view>(historical) == "old"sv);
 }
