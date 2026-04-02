@@ -4,6 +4,7 @@
 #include <array>
 #include <charconv>
 #include <concepts>
+#include <cstdint>
 #include <expected>
 #include <limits>
 #include <string>
@@ -78,9 +79,8 @@ constexpr auto use_fnv_1a(const std::string_view value) -> UseFNV1aHashT
     return UseFNV1aHashT{ value };
 }
 
-
 [[nodiscard]]
-auto hash(const UseStdHashT value) -> size_t
+inline auto hash(const UseStdHashT value) -> size_t
 {
     using Hasher = std::hash<std::string_view>;
     return Hasher{}(value.value);

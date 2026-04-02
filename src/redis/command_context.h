@@ -8,8 +8,10 @@
 #include <sponge/tag.h>
 
 #include "reply.h"
+#include "sponge/utility.h"
 
 namespace spg::redis {
+
 
 struct CommandContext {
     ApplicationContext& application_context;
@@ -24,7 +26,7 @@ struct CommandContext {
 
     auto io_context(std::string_view key) -> boost::asio::io_context&
     {
-        return application_context.io_context(index(key), by_hash);
+        return application_context.io_context(hashed_key(index(key)));
     }
 
     auto shard(std::size_t hash) -> DBShard&
@@ -34,7 +36,7 @@ struct CommandContext {
 
     auto shard(std::string_view key) -> DBShard&
     {
-        return application_context.shard(index(key), by_hash);
+        return application_context.shard(hashed_key(index(key)));
     }
 
     auto shards() const -> std::span<const std::unique_ptr<DBShard>>
@@ -61,7 +63,7 @@ struct CommandContext {
 private:
     static auto hash_fnv_1a(std::string_view key) -> std::size_t
     {
-        return hash(key, use_fnv_1a);
+        return hash(use_fnv_1a(key));
     }
 };
 

@@ -10,7 +10,6 @@
 
 #include <boost/asio.hpp>
 
-#include <sponge/hash.h>
 #include <sponge/redis/db_shard.h>
 #include <sponge/utility.h>
 

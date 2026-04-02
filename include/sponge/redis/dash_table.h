@@ -9,8 +9,8 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <sponge/hash.h>
 #include <sponge/tag.h>
+#include <sponge/utility.h>
 
 namespace spg::redis {
 
@@ -94,6 +94,43 @@ public:
         return true;
     }
 
+    auto rename(std::string_view old_key, std::string_view new_key) -> bool
+    {
+        const auto old_index = index_for(old_key);
+        const auto new_index = index_for(new_key);
+
+        if (old_index == new_index) {
+            std::unique_lock locker{ locks_[old_index] };
+            auto& segment = datas_[old_index];
+            auto it = segment.find(old_key);
+            if (it == segment.end())
+                return false;
+
+            if (old_key == new_key)
+                return true;
+
+            auto value = std::move(it->second);
+            segment.erase(it);
+            segment.insert_or_assign(std::pmr::string{ new_key }, std::move(value));
+            return true;
+        }
+
+        auto first = std::unique_lock<std::shared_mutex>{ locks_[std::min(old_index, new_index)], std::defer_lock };
+        auto second = std::unique_lock<std::shared_mutex>{ locks_[std::max(old_index, new_index)], std::defer_lock };
+        std::lock(first, second);
+
+        auto& source = datas_[old_index];
+        auto& destination = datas_[new_index];
+        auto it = source.find(old_key);
+        if (it == source.end())
+            return false;
+
+        auto value = std::move(it->second);
+        source.erase(it);
+        destination.insert_or_assign(std::pmr::string{ new_key }, std::move(value));
+        return true;
+    }
+
     void clear()
     {
         for (size_t i = 0; i < SEGMENTS; ++i) {
@@ -146,7 +183,7 @@ private:
     [[nodiscard]]
     auto index_for(std::string_view key) const -> Size
     {
-        return hash(key, use_fnv_1a) & SEGMENT_MASK;
+        return hash(use_fnv_1a(key)) & SEGMENT_MASK;
     }
 };
 

@@ -3,6 +3,10 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <memory_resource>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -148,4 +152,64 @@ TEST_CASE("string_cast 应输出可被 numeric_cast 解析的浮点文本", "[co
     auto parsed = numeric_cast<double>(*text);
     REQUIRE(parsed);
     CHECK(std::abs(*parsed - input) <= std::numeric_limits<double>::epsilon() * std::abs(input));
+}
+
+TEST_CASE("std hash 对相同输入应返回稳定哈希值", "[common][utility]")
+{
+    REQUIRE(hash(use_std_hash("hello")) == hash(use_std_hash("hello")));
+}
+
+TEST_CASE("std hash 对不同输入应返回不同哈希值", "[common][utility]")
+{
+    REQUIRE(hash(use_std_hash("foo")) != hash(use_std_hash("bar")));
+}
+
+TEST_CASE("FNV-1a hash 对相同输入应返回稳定哈希值", "[common][utility]")
+{
+    REQUIRE(hash(use_fnv_1a("hello")) == hash(use_fnv_1a("hello")));
+}
+
+TEST_CASE("FNV-1a hash 应正确处理空字符串", "[common][utility]")
+{
+    const auto empty_hash = hash(use_fnv_1a(""));
+
+    REQUIRE(empty_hash == hash(use_fnv_1a("")));
+    REQUIRE(empty_hash != hash(use_fnv_1a("a")));
+}
+
+TEST_CASE("两种 hash 算法对同一输入都应保持各自结果稳定", "[common][utility]")
+{
+    const std::string test_strings[] = { "test", "hello", "world", "123", "" };
+
+    for (const auto& text : test_strings) {
+        const auto std_hash = hash(use_std_hash(text));
+        const auto fnv_hash = hash(use_fnv_1a(text));
+
+        REQUIRE(hash(use_std_hash(text)) == std_hash);
+        REQUIRE(hash(use_fnv_1a(text)) == fnv_hash);
+    }
+}
+
+TEST_CASE("StringHash 应支持 unordered_map 的异构查找", "[common][utility]")
+{
+    std::unordered_map<std::string, int, StringHash, std::equal_to<>> map{};
+    map.emplace("key", 42);
+
+    const std::string_view sv{ "key" };
+    const auto it = map.find(sv);
+
+    REQUIRE(it != map.end());
+    REQUIRE(it->second == 42);
+}
+
+TEST_CASE("PmrStringHash 应支持 pmr::unordered_map 的异构查找", "[common][utility]")
+{
+    std::pmr::unordered_map<std::pmr::string, int, PmrStringHash, std::equal_to<>> map{};
+    map.emplace("key", 99);
+
+    const std::string_view sv{ "key" };
+    const auto it = map.find(sv);
+
+    REQUIRE(it != map.end());
+    REQUIRE(it->second == 99);
 }

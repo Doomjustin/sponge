@@ -11,7 +11,6 @@
 
 #include <boost/unordered/unordered_flat_map.hpp>
 
-#include <sponge/hash.h>
 #include <sponge/redis/sorted_set.h>
 
 namespace {

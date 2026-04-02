@@ -6,11 +6,11 @@
 #include <list>
 #include <optional>
 #include <type_traits>
+#include <utility>
 #include <variant>
 
 #include <boost/unordered/unordered_flat_map.hpp>
 
-#include <sponge/hash.h>
 #include <sponge/tag.h>
 #include <sponge/utility.h>
 
@@ -115,7 +115,7 @@ private:
 
 class DBShard::EntryHandler {
 public:
-    EntryHandler(DashTable<Entry>::Segment &segment, DashTable<Entry>::Segment::iterator it, std::string_view key)
+    EntryHandler(DashTable<Entry>::Segment& segment, DashTable<Entry>::Segment::iterator it, std::string_view key)
       : segment_{ segment }, 
         it_{ it }, 
         key_{ key }
@@ -214,35 +214,62 @@ public:
         if (new_key == key_)
             return true;
 
-        auto entry = std::move(it_->second);
-        segment_.erase(it_);
-        it_ = segment_.end();
-
-        auto [iter, _] = segment_.insert_or_assign(String{ new_key }, std::move(entry));
-        it_ = iter;
+        renamed_key_ = String{ new_key };
         return true;
+    }
+
+    auto take_renamed_key() -> std::optional<String>
+    {
+        return std::exchange(renamed_key_, std::nullopt);
     }
 
 private:
     DashTable<Entry>::Segment& segment_;
     DashTable<Entry>::Segment::iterator it_;
     std::string_view key_;
+    std::optional<String> renamed_key_;
 };
 
 
 template<typename Func>
 auto DBShard::modify(std::string_view key, Func&& func) -> decltype(auto)
 {
-    return table_.modify(key, [&] (auto& segment, auto it) {
-        if (it != segment.end() && ttl_manager_.is_expired(it->second.expire_at)) {
-            segment.erase(it);
-            it = segment.end();
-        }
+    using Result = std::invoke_result_t<Func, EntryHandler&>;
+    std::optional<String> renamed_key;
 
-        // 由于是模板，所以必须要保证能看到handler的完整定义
-        EntryHandler handler{ segment, it, key };
-        return func(handler);
-    });
+    if constexpr (std::is_void_v<Result>) {
+        table_.modify(key, [&] (auto& segment, auto it) {
+            if (it != segment.end() && ttl_manager_.is_expired(it->second.expire_at)) {
+                segment.erase(it);
+                it = segment.end();
+            }
+
+            // 由于是模板，所以必须要保证能看到handler的完整定义
+            EntryHandler handler{ segment, it, key };
+            func(handler);
+            renamed_key = handler.take_renamed_key();
+        });
+
+        if (renamed_key.has_value())
+            table_.rename(key, *renamed_key);
+    } else {
+        auto result = table_.modify(key, [&] (auto& segment, auto it) {
+            if (it != segment.end() && ttl_manager_.is_expired(it->second.expire_at)) {
+                segment.erase(it);
+                it = segment.end();
+            }
+
+            EntryHandler handler{ segment, it, key };
+            auto inner_result = func(handler);
+            renamed_key = handler.take_renamed_key();
+            return inner_result;
+        });
+
+        if (renamed_key.has_value())
+            table_.rename(key, *renamed_key);
+
+        return result;
+    }
 }
 
 } // namespace spg::redis

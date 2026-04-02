@@ -16,9 +16,18 @@
 
 namespace spg::redis {
 
+struct HashedKey {
+    size_t value;
+};
+
+constexpr auto hashed_key(size_t value) -> HashedKey
+{
+    return { value };
+}
+
 class ApplicationContext {
 public:
-    using Size = std::size_t;
+    using Size = size_t;
 
     ApplicationContext(Size count, std::string_view aof_filename);
 
@@ -33,16 +42,16 @@ public:
     [[nodiscard]]
     constexpr auto data_size() const noexcept -> Size;
 
-    auto shard(Size key_hash, ByHashTag by_hash) noexcept -> DBShard&
+    auto shard(HashedKey key) noexcept -> DBShard&
     {
-        return *shards_[key_hash % shards_.size()];
+        return *shards_[key.value % shards_.size()];
     }
 
     auto shard(Size index) noexcept -> DBShard& { return *shards_[index]; }
 
-    auto io_context(Size key_hash, ByHashTag by_hash) noexcept -> boost::asio::io_context&
+    auto io_context(HashedKey key) noexcept -> boost::asio::io_context&
     {
-        return io_context_pool_[key_hash % io_context_pool_.size()];
+        return io_context_pool_[key.value % io_context_pool_.size()];
     }
 
     auto io_context(Size id) noexcept -> boost::asio::io_context&
