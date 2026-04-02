@@ -6,7 +6,7 @@
 
 using namespace spg::redis;
 
-TEST_CASE("parse_resp_batch parses single command", "[spg_redis_protocol][parse]")
+TEST_CASE("解析RESP批量请求时应解析单个命令", "[redis][protocol]")
 {
     std::string_view request_buffer{ "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n" };
 
@@ -21,7 +21,7 @@ TEST_CASE("parse_resp_batch parses single command", "[spg_redis_protocol][parse]
     REQUIRE(result.consumed_bytes == request_buffer.size());
 }
 
-TEST_CASE("parse_resp_batch parses multiple commands in one buffer", "[spg_redis_protocol][parse]")
+TEST_CASE("解析RESP批量请求时应解析同一缓冲区中的多个命令", "[redis][protocol]")
 {
     std::string_view request_buffer{ "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n"
                                      "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n" };
@@ -36,7 +36,7 @@ TEST_CASE("parse_resp_batch parses multiple commands in one buffer", "[spg_redis
     REQUIRE(result.consumed_bytes == request_buffer.size());
 }
 
-TEST_CASE("parse_resp_batch returns empty on incomplete buffer", "[spg_redis_protocol][partial]")
+TEST_CASE("解析RESP批量请求时应返回空结果", "[redis][protocol]")
 {
     std::string_view request_buffer{ "*3\r\n$3\r\nSET\r\n$5\r\nmyk" }; // 半包：最后一个参数不完整
 
@@ -46,7 +46,7 @@ TEST_CASE("parse_resp_batch returns empty on incomplete buffer", "[spg_redis_pro
     REQUIRE(result.consumed_bytes == 0);
 }
 
-TEST_CASE("parse_resp_batch throws on malformed bulk string", "[spg_redis_protocol][malformed]")
+TEST_CASE("解析RESP批量请求在格式错误的批量字符串场景应抛出异常", "[redis][protocol]")
 {
     std::string_view request_buffer{ "*1\r\nNOT_BULK\r\n" }; // 参数应以 $ 开头
 

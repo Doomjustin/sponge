@@ -25,7 +25,7 @@ auto echo_float(const Request& request, float value) -> std::string
 
 } // namespace
 
-TEST_CASE("Router dispatches a matched route", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应分发到匹配路由", "[http][router]")
 {
     Router router{};
     router.Map<Method::Get, "/ping">(pong);
@@ -37,8 +37,8 @@ TEST_CASE("Router dispatches a matched route", "[spg_http_router][dispatch]")
     REQUIRE(result->body() == "pong");
 }
 
-TEST_CASE("Router prefers a later success over an earlier method mismatch",
-          "[spg_http_router][dispatch]")
+TEST_CASE("Router 在前序方法不匹配时应继续匹配后续成功路由",
+          "[http][router]")
 {
     Router router{};
     router.Map<Method::Post, "/ping">(pong);
@@ -51,8 +51,8 @@ TEST_CASE("Router prefers a later success over an earlier method mismatch",
     REQUIRE(result->body() == "pong");
 }
 
-TEST_CASE("Router returns method not allowed when path matches but method does not",
-          "[spg_http_router][dispatch]")
+TEST_CASE("Router 在路径匹配但方法不匹配时应返回 method not allowed",
+          "[http][router]")
 {
     Router router{};
     router.Map<Method::Post, "/ping">(pong);
@@ -63,7 +63,7 @@ TEST_CASE("Router returns method not allowed when path matches but method does n
     REQUIRE(result.error() == Status::MethodNotAllowed);
 }
 
-TEST_CASE("Router injects float path parameters by position", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应按位置注入 float 路径参数", "[http][router]")
 {
     Router router{};
     router.Map<Method::Get, "/price/(-?[0-9]+(?:\\.[0-9]+)?)">(echo_float);
@@ -74,7 +74,7 @@ TEST_CASE("Router injects float path parameters by position", "[spg_http_router]
     REQUIRE(result->body() == "3.500000");
 }
 
-TEST_CASE("Router middleware wrap handler in order", "[spg_http_router][middleware]")
+TEST_CASE("Router middleware 应按顺序包装 handler", "[http][router]")
 {
     Router router{};
     std::vector<std::string> order{};
@@ -98,7 +98,7 @@ TEST_CASE("Router middleware wrap handler in order", "[spg_http_router][middlewa
     REQUIRE(order == std::vector<std::string>{ "mw-before", "handler", "mw-after" });
 }
 
-TEST_CASE("Router middleware can short-circuit", "[spg_http_router][middleware]")
+TEST_CASE("Router middleware 应支持 short-circuit", "[http][router]")
 {
     Router router{};
     auto handler_called = false;
@@ -120,8 +120,8 @@ TEST_CASE("Router middleware can short-circuit", "[spg_http_router][middleware]"
     REQUIRE_FALSE(handler_called);
 }
 
-TEST_CASE("Router with recover middleware converts thrown exceptions to internal server error",
-          "[spg_http_router][middleware]")
+TEST_CASE("Router 搭配 recover middleware 时应将异常转换为 internal server error",
+          "[http][router]")
 {
     Router router{};
     router.Use(middleware::recover());
@@ -135,8 +135,8 @@ TEST_CASE("Router with recover middleware converts thrown exceptions to internal
     REQUIRE(result.error() == Status::InternalServerError);
 }
 
-TEST_CASE("Router converts BadRequestException from middleware to bad request",
-          "[spg_http_router][middleware]")
+TEST_CASE("Router 应将 middleware 抛出的 BadRequestException 转换为 bad request",
+          "[http][router]")
 {
     Router router{};
     router.Use(middleware::recover());
@@ -154,7 +154,7 @@ TEST_CASE("Router converts BadRequestException from middleware to bad request",
     REQUIRE(result.error() == Status::BadRequest);
 }
 
-TEST_CASE("Router supports expected success from handler", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应支持 handler 返回 expected 成功值", "[http][router]")
 {
     Router router{};
 
@@ -168,7 +168,7 @@ TEST_CASE("Router supports expected success from handler", "[spg_http_router][di
     REQUIRE(result->body() == "ok");
 }
 
-TEST_CASE("Router supports expected error from handler", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应支持 handler 返回 expected 错误值", "[http][router]")
 {
     Router router{};
 
@@ -183,7 +183,7 @@ TEST_CASE("Router supports expected error from handler", "[spg_http_router][disp
     REQUIRE(result.error() == Status::Forbidden);
 }
 
-TEST_CASE("Router supports Response with custom headers", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应支持带自定义 headers 的 Response", "[http][router]")
 {
     Router router{};
 
@@ -207,7 +207,7 @@ TEST_CASE("Router supports Response with custom headers", "[spg_http_router][dis
     REQUIRE(result->at("location") == "/resource/1");
 }
 
-TEST_CASE("Router supports expected<Response, Status>", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应支持 expected<Response, Status>", "[http][router]")
 {
     Router router{};
 
@@ -225,7 +225,7 @@ TEST_CASE("Router supports expected<Response, Status>", "[spg_http_router][dispa
     REQUIRE(result->body() == "accepted");
 }
 
-TEST_CASE("Router supports duplicate response headers", "[spg_http_router][dispatch]")
+TEST_CASE("Router 应支持重复 response headers", "[http][router]")
 {
     Router router{};
 
@@ -247,7 +247,7 @@ TEST_CASE("Router supports duplicate response headers", "[spg_http_router][dispa
     REQUIRE(result->count("x-extra") == 2);
 }
 
-TEST_CASE("Request ID middleware generates response request id", "[spg_http_router][middleware]")
+TEST_CASE("Request ID middleware 应生成 response request id", "[http][router]")
 {
     Router router{};
     router.Use(middleware::request_id());
@@ -261,7 +261,7 @@ TEST_CASE("Request ID middleware generates response request id", "[spg_http_rout
     REQUIRE_FALSE(std::string{ it->value() }.empty());
 }
 
-TEST_CASE("Request ID middleware forwards incoming request id", "[spg_http_router][middleware]")
+TEST_CASE("Request ID middleware 应透传传入的 request id", "[http][router]")
 {
     Router router{};
     router.Use(middleware::request_id());
@@ -280,8 +280,8 @@ TEST_CASE("Request ID middleware forwards incoming request id", "[spg_http_route
     REQUIRE(result->at("x-request-id") == "rid-incoming");
 }
 
-TEST_CASE("Recover middleware maps thrown exceptions to internal server error",
-          "[spg_http_router][middleware]")
+TEST_CASE("Recover middleware 应将抛出异常映射为 internal server error",
+          "[http][router]")
 {
     Router router{};
     router.Use(middleware::recover());

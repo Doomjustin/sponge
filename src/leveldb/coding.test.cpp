@@ -9,7 +9,7 @@
 
 using namespace spg::leveldb;
 
-TEST_CASE("fixed write/read works with subspan", "[spg_leveldb_coding][fixed]")
+TEST_CASE("fixed write/read 在 subspan 上应正常工作", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer(16, std::byte{ 0 });
 
@@ -20,7 +20,7 @@ TEST_CASE("fixed write/read works with subspan", "[spg_leveldb_coding][fixed]")
     REQUIRE(value == 0x01020304U);
 }
 
-TEST_CASE("fixed append appends bytes for vector", "[spg_leveldb_coding][fixed]")
+TEST_CASE("fixed append 应向 vector 追加字节", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer;
 
@@ -36,7 +36,7 @@ TEST_CASE("fixed append appends bytes for vector", "[spg_leveldb_coding][fixed]"
     REQUIRE(second == 0x0012U);
 }
 
-TEST_CASE("fixed append appends string_view bytes for vector", "[spg_leveldb_coding][fixed]")
+TEST_CASE("fixed append 应向 vector 追加 string_view 字节", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer;
 
@@ -48,7 +48,7 @@ TEST_CASE("fixed append appends string_view bytes for vector", "[spg_leveldb_cod
     REQUIRE(buffer[2] == std::byte{ 'y' });
 }
 
-TEST_CASE("fixed append appends bytes for string", "[spg_leveldb_coding][fixed]")
+TEST_CASE("fixed append 应向 string 追加字节", "[leveldb][coding]")
 {
     std::string buffer;
 
@@ -67,7 +67,7 @@ TEST_CASE("fixed append appends bytes for string", "[spg_leveldb_coding][fixed]"
     REQUIRE(second == 0x00000001U);
 }
 
-TEST_CASE("varint append encodes expected bytes", "[spg_leveldb_coding][varint]")
+TEST_CASE("varint append 应编码为预期字节序列", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer;
 
@@ -85,7 +85,7 @@ TEST_CASE("varint append encodes expected bytes", "[spg_leveldb_coding][varint]"
     REQUIRE(buffer == std::vector<std::byte>{ expected.begin(), expected.end() });
 }
 
-TEST_CASE("varint append encodes expected bytes for string", "[spg_leveldb_coding][varint]")
+TEST_CASE("varint append 应为 string 编码预期字节序列", "[leveldb][coding]")
 {
     std::string buffer;
 
@@ -96,7 +96,7 @@ TEST_CASE("varint append encodes expected bytes for string", "[spg_leveldb_codin
     REQUIRE(static_cast<unsigned char>(buffer[1]) == 0x02U);
 }
 
-TEST_CASE("varint read decodes expected value and consumed bytes", "[spg_leveldb_coding][varint]")
+TEST_CASE("varint read 应解码预期值并返回消耗字节数", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer;
     varint::append<uint32_t>(buffer, 300U);
@@ -109,7 +109,7 @@ TEST_CASE("varint read decodes expected value and consumed bytes", "[spg_leveldb
     REQUIRE(decoded->second == 2);
 }
 
-TEST_CASE("varint read from string decodes expected value", "[spg_leveldb_coding][varint]")
+TEST_CASE("varint read 从 string 读取时应解码预期值", "[leveldb][coding]")
 {
     std::string buffer;
     varint::append<uint32_t>(buffer, 300U);
@@ -121,7 +121,7 @@ TEST_CASE("varint read from string decodes expected value", "[spg_leveldb_coding
     REQUIRE(decoded->second == 2);
 }
 
-TEST_CASE("varint read returns nullopt for truncated input", "[spg_leveldb_coding][varint]")
+TEST_CASE("varint read 在截断输入时应返回 nullopt", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer{ std::byte{ 0x80 } };
 
@@ -130,7 +130,7 @@ TEST_CASE("varint read returns nullopt for truncated input", "[spg_leveldb_codin
     REQUIRE_FALSE(decoded.has_value());
 }
 
-TEST_CASE("varint read returns nullopt for overflow input", "[spg_leveldb_coding][varint]")
+TEST_CASE("varint read 在溢出输入时应返回 nullopt", "[leveldb][coding]")
 {
     std::vector<std::byte> buffer{
         std::byte{ 0xFF }, std::byte{ 0xFF }, std::byte{ 0xFF },

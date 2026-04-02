@@ -11,7 +11,7 @@
 
 using namespace spg;
 
-TEST_CASE("random 一致分布整数应保持在孚开区间内", "[random]")
+TEST_CASE("uniform 生成整数时应落在半开区间内", "[common][random]")
 {
     random::seed(12345U);
 
@@ -22,7 +22,7 @@ TEST_CASE("random 一致分布整数应保持在孚开区间内", "[random]")
     }
 }
 
-TEST_CASE("random 一致分布浮数应保持在区间内", "[random]")
+TEST_CASE("uniform 生成浮点数时应落在区间内", "[common][random]")
 {
     random::seed(67890U);
 
@@ -33,7 +33,7 @@ TEST_CASE("random 一致分布浮数应保持在区间内", "[random]")
     }
 }
 
-TEST_CASE("random種子梯序阎列应是确定性的", "[random]")
+TEST_CASE("相同种子应生成确定性序列", "[common][random]")
 {
     random::seed(42U);
     std::array<int, 8> first{};
@@ -48,35 +48,49 @@ TEST_CASE("random種子梯序阎列应是确定性的", "[random]")
     REQUIRE(first == second);
 }
 
-TEST_CASE("random bernoulli 和 binomial 应输出有效范围", "[random]")
+TEST_CASE("bernoulli 应返回布尔值", "[common][random]")
 {
     random::seed(24680U);
 
     for (int i = 0; i < 100; ++i) {
         auto b = random::bernoulli(0.3);
         REQUIRE((b == true || b == false));
+    }
+}
 
+TEST_CASE("binomial 应返回有效范围内的值", "[common][random]")
+{
+    random::seed(24680U);
+
+    for (int i = 0; i < 100; ++i) {
         auto n = random::binomial(10, 0.5);
         REQUIRE(n >= 0);
         REQUIRE(n <= 10);
     }
 }
 
-TEST_CASE("random normal 和 exponential 应产生有限值", "[random]")
+TEST_CASE("normal 应生成有限值", "[common][random]")
 {
     random::seed(13579U);
 
     for (int i = 0; i < 100; ++i) {
         auto normal = random::normal(0.0, 1.0);
-        auto expo = random::exponential(1.0);
-
         REQUIRE(std::isfinite(normal));
+    }
+}
+
+TEST_CASE("exponential 应生成非负有限值", "[common][random]")
+{
+    random::seed(13579U);
+
+    for (int i = 0; i < 100; ++i) {
+        auto expo = random::exponential(1.0);
         REQUIRE(std::isfinite(expo));
         REQUIRE(expo >= 0.0);
     }
 }
 
-TEST_CASE("random shuffle 应保持元素", "[random]")
+TEST_CASE("shuffle 应保持元素集合不变", "[common][random]")
 {
     random::seed(112233U);
 
@@ -90,7 +104,7 @@ TEST_CASE("random shuffle 应保持元素", "[random]")
     REQUIRE(values == original);
 }
 
-TEST_CASE("random choice 和 sample 应遵重源集合", "[random]")
+TEST_CASE("choice 应从源集合中取值", "[common][random]")
 {
     random::seed(556677U);
 
@@ -98,6 +112,13 @@ TEST_CASE("random choice 和 sample 应遵重源集合", "[random]")
 
     auto chosen = random::choice(values);
     REQUIRE(std::ranges::find(values, chosen) != values.end());
+}
+
+TEST_CASE("sample 应返回固定数量且来自源集合的样本", "[common][random]")
+{
+    random::seed(556677U);
+
+    const std::vector<int> values{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
     auto sampled = random::sample(values, 4U);
     REQUIRE(sampled.size() == 4);
@@ -106,7 +127,7 @@ TEST_CASE("random choice 和 sample 应遵重源集合", "[random]")
         REQUIRE(std::ranges::find(values, v) != values.end());
 }
 
-TEST_CASE("random 线程本地引擎应在相同种子下产生相同梯序", "[random]")
+TEST_CASE("线程本地引擎在相同种子下应生成相同序列", "[common][random]")
 {
     std::array<int, 8> seq_a{};
     std::array<int, 8> seq_b{};
@@ -134,7 +155,7 @@ TEST_CASE("random 线程本地引擎应在相同种子下产生相同梯序", "[
     REQUIRE(seq_a == seq_b);
 }
 
-TEST_CASE("random 子线程不应影响主线程引擎状态", "[random]")
+TEST_CASE("子线程不应影响主线程的随机引擎状态", "[common][random]")
 {
     random::seed(777U);
     auto first = random::uniform(1000000);

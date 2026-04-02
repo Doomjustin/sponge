@@ -13,14 +13,14 @@ auto make_request(Method method, std::string_view path) -> Request
 
 } // namespace
 
-TEST_CASE("templates::method_not_allowed formats the method name", "[spg_http_templates]")
+TEST_CASE("templates::method_not_allowed 应格式化 method 名称", "[http][templates]")
 {
     const auto request = make_request(Method::Post, "/ping");
 
     REQUIRE(templates::method_not_allowed(request) == "Method POST Not Allowed");
 }
 
-TEST_CASE("templates::error routes through specialized messages", "[spg_http_templates]")
+TEST_CASE("templates::error 应路由到专用错误消息", "[http][templates]")
 {
     const auto request = make_request(Method::Get, "/missing");
 

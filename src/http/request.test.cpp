@@ -4,7 +4,7 @@
 
 using namespace spg::http;
 
-TEST_CASE("RequestBuilder stores core request properties", "[spg_http_request][builder]")
+TEST_CASE("RequestBuilder 应保存请求核心属性", "[http][request]")
 {
     auto request = RequestBuilder{}
                        .method(Method::Post)
@@ -21,7 +21,7 @@ TEST_CASE("RequestBuilder stores core request properties", "[spg_http_request][b
     REQUIRE(request.keep_alive());
 }
 
-TEST_CASE("RequestBuilder exposes headers through get_header", "[spg_http_request][headers]")
+TEST_CASE("RequestBuilder 应通过 get_header 暴露 headers", "[http][request]")
 {
     auto request = RequestBuilder{}
                        .add_header("content-type", "application/json")

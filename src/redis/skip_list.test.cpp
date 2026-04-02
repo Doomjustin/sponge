@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-TEST_CASE("SkipList starts empty", "[redis][skip_list]")
+TEST_CASE("在SkipList初始化后，应该为空", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
 
@@ -17,7 +17,7 @@ TEST_CASE("SkipList starts empty", "[redis][skip_list]")
     REQUIRE(list.find(1.0, "missing") == list.end());
 }
 
-TEST_CASE("SkipList iterates in score then element order", "[redis][skip_list]")
+TEST_CASE("SkipList按分数和元素顺序迭代时应得到有序结果", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
     list.insert(2.0, "b");
@@ -42,7 +42,7 @@ TEST_CASE("SkipList iterates in score then element order", "[redis][skip_list]")
     REQUIRE(actual == expected);
 }
 
-TEST_CASE("SkipList erase removes only one matching element", "[redis][skip_list]")
+TEST_CASE("SkipList执行erase时应仅删除一个匹配元素", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
     list.insert(1.0, "dup");
@@ -62,7 +62,7 @@ TEST_CASE("SkipList erase removes only one matching element", "[redis][skip_list
     REQUIRE(list.size() == 1);
 }
 
-TEST_CASE("SkipList update can reorder element", "[redis][skip_list]")
+TEST_CASE("SkipList执行update时应能重排行元素", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
     list.insert(1.0, "a");
@@ -86,7 +86,7 @@ TEST_CASE("SkipList update can reorder element", "[redis][skip_list]")
     REQUIRE(list.find(4.0, "b") != list.end());
 }
 
-TEST_CASE("SkipList find returns matching iterator", "[redis][skip_list]")
+TEST_CASE("SkipList find应返回匹配迭代器", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
     list.insert(10.0, "alpha");
@@ -100,7 +100,7 @@ TEST_CASE("SkipList find returns matching iterator", "[redis][skip_list]")
     REQUIRE(element == "beta");
 }
 
-TEST_CASE("SkipList keeps total order for bulk inserts", "[redis][skip_list]")
+TEST_CASE("SkipList批量插入后应保持全序", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
 
@@ -133,7 +133,7 @@ TEST_CASE("SkipList keeps total order for bulk inserts", "[redis][skip_list]")
     REQUIRE(actual == expected);
 }
 
-TEST_CASE("SkipList rank matches sorted position", "[redis][skip_list]")
+TEST_CASE("SkipList中rank与排序位置一致", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
 
@@ -159,7 +159,7 @@ TEST_CASE("SkipList rank matches sorted position", "[redis][skip_list]")
     REQUIRE(list.rank(10.0, "missing") == 0);
 }
 
-TEST_CASE("SkipList reverse iterator traverses descending order", "[redis][skip_list]")
+TEST_CASE("SkipList反向迭代器按降序遍历", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
     list.insert(1.0, "a");
@@ -181,7 +181,7 @@ TEST_CASE("SkipList reverse iterator traverses descending order", "[redis][skip_
     REQUIRE(actual == expected);
 }
 
-TEST_CASE("SkipList find by rank (1-based)", "[redis][skip_list]")
+TEST_CASE("SkipList按排名查找（1基）时应返回正确元素", "[redis][skip_list]")
 {
     spg::redis::SkipList list;
     

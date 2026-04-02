@@ -9,14 +9,14 @@
 using namespace spg;
 using namespace std::literals;
 
-TEST_CASE("IOContexts 报告配置的大小", "[io_contexts]")
+TEST_CASE("IOContexts 应报告配置的池大小", "[common][io_contexts]")
 {
     IOContexts pool{ 3 };
 
     REQUIRE(pool.size() == 3);
 }
 
-TEST_CASE("IOContexts 执行投递的任务", "[io_contexts]")
+TEST_CASE("IOContexts 应执行投递的任务", "[common][io_contexts]")
 {
     IOContexts pool{ 2 };
     std::promise<void> done;
@@ -34,7 +34,7 @@ TEST_CASE("IOContexts 执行投递的任务", "[io_contexts]")
     REQUIRE(ran.load(std::memory_order_relaxed));
 }
 
-TEST_CASE("IOContexts 多个上下文都能执行任务", "[io_contexts]")
+TEST_CASE("IOContexts 多个上下文均应能执行任务", "[common][io_contexts]")
 {
     IOContexts pool{ 2 };
     std::promise<void> done0;
@@ -60,7 +60,7 @@ TEST_CASE("IOContexts 多个上下文都能执行任务", "[io_contexts]")
     REQUIRE(ran1.load(std::memory_order_relaxed));
 }
 
-TEST_CASE("IOContexts 析构可安全返回", "[io_contexts]")
+TEST_CASE("IOContexts 析构时应安全完成并返回", "[common][io_contexts]")
 {
     auto start = std::chrono::steady_clock::now();
     {

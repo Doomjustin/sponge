@@ -4,20 +4,19 @@
 
 using namespace spg::redis;
 
-TEST_CASE("TTLManager identifies persistent time point", "[spg_redis_ttl_manager][persist]")
+TEST_CASE("TTLManager识别持久时间点时应返回正确判断", "[redis][ttl_manager]")
 {
     REQUIRE(TTLManager::is_persist(TTLManager::TimePoint::max()));
     REQUIRE_FALSE(TTLManager::is_persist(TTLManager::Clock::now()));
 }
 
-TEST_CASE("TTLManager maps negative ttl to persistent sentinel",
-          "[spg_redis_ttl_manager][expire_at_cast]")
+TEST_CASE("TTLManager将负TTL映射为持久哨兵值",
+          "[redis][ttl_manager]")
 {
     REQUIRE(TTLManager::expire_at(-1) == -1);
 }
 
-TEST_CASE("TTLManager converts positive ttl to future time point",
-          "[spg_redis_ttl_manager][expire_at_cast]")
+TEST_CASE("TTLManager将正TTL转换为未来时间点", "[redis][ttl_manager]")
 {
     constexpr auto ttl{ TTLManager::Milliseconds{ 50 } };
     auto before{ TTLManager::Clock::now() };
@@ -30,8 +29,7 @@ TEST_CASE("TTLManager converts positive ttl to future time point",
     REQUIRE(expire_at <= after + ttl);
 }
 
-TEST_CASE("TTLManager converts positive ttl to future integral expiration time",
-          "[spg_redis_ttl_manager][expire_at_cast]")
+TEST_CASE("TTLManager将正TTL转换为未来整数过期时间", "[redis][ttl_manager]")
 {
     constexpr auto ttl{ TTLManager::Milliseconds{ 50 } };
     auto before{ std::chrono::duration_cast<TTLManager::Milliseconds>(

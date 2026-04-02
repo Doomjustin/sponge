@@ -10,7 +10,7 @@ using spg::read_write;
 using spg::read_only;
 using spg::unlock;
 
-TEST_CASE("dash_table basic set/get/erase", "[dash_table]")
+TEST_CASE("dash_table 基础set/get/erase", "[redis][dash_table]")
 {
     DashTable<int> table;
 
@@ -33,7 +33,7 @@ TEST_CASE("dash_table basic set/get/erase", "[dash_table]")
     CHECK(table.size() == 1);
 }
 
-TEST_CASE("dash_table modify and unlock path", "[dash_table]")
+TEST_CASE("dash_table modify应更新已有值", "[redis][dash_table]")
 {
     DashTable<int> table;
     table.set("counter", 1);
@@ -47,6 +47,12 @@ TEST_CASE("dash_table modify and unlock path", "[dash_table]")
     auto* updated = table.get("counter");
     REQUIRE(updated != nullptr);
     CHECK(*updated == 2);
+}
+
+TEST_CASE("dash_table unlock路径应支持无锁访问与修改", "[redis][dash_table]")
+{
+    DashTable<int> table;
+    table.set("counter", 2);
 
     auto& mutex = table.mutex_of("counter");
     std::unique_lock locker{ mutex };
@@ -60,7 +66,7 @@ TEST_CASE("dash_table modify and unlock path", "[dash_table]")
     CHECK(table.get("counter", unlock) == nullptr);
 }
 
-TEST_CASE("dash_table range iterates all segments on empty table", "[dash_table]")
+TEST_CASE("dash_table range遍历空表所有分段", "[redis][dash_table]")
 {
     DashTable<int> table;
 
@@ -80,7 +86,7 @@ TEST_CASE("dash_table range iterates all segments on empty table", "[dash_table]
     CHECK(total_entries == 0);
 }
 
-TEST_CASE("dash_table range iterates inserted entries", "[dash_table]")
+TEST_CASE("dash_table range遍历已插入条目", "[redis][dash_table]")
 {
     DashTable<int> table;
     table.set("a", 1);
@@ -102,7 +108,7 @@ TEST_CASE("dash_table range iterates inserted entries", "[dash_table]")
     CHECK(sum == 6);
 }
 
-TEST_CASE("dash_table modify range can update all values", "[dash_table]")
+TEST_CASE("dash_table modify range更新所有值", "[redis][dash_table]")
 {
     DashTable<int> table;
     table.set("x", 1);

@@ -53,7 +53,7 @@ void check_string_sequence(ListPack& lp, const std::vector<std::string_view>& ex
 
 } // namespace
 
-TEST_CASE("ListPack 初始状态", "[list_pack]")
+TEST_CASE("ListPack 初始状态", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
 
@@ -62,7 +62,7 @@ TEST_CASE("ListPack 初始状态", "[list_pack]")
     REQUIRE(lp.byte_size() == EMPTY_SIZE);
 }
 
-TEST_CASE("ListPack append int64 — int7 (0~127)", "[list_pack]")
+TEST_CASE("ListPack append int64 — int7 (0~127)", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(0);
@@ -73,7 +73,7 @@ TEST_CASE("ListPack append int64 — int7 (0~127)", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 2 * 2);
 }
 
-TEST_CASE("ListPack append int64 — int13 (-4096~4095, 排除 int7)", "[list_pack]")
+TEST_CASE("ListPack append int64 — int13 (-4096~4095, 排除 int7)", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(128);   // 超过 int7 上界
@@ -85,7 +85,7 @@ TEST_CASE("ListPack append int64 — int13 (-4096~4095, 排除 int7)", "[list_pa
     CHECK(lp.byte_size() == EMPTY_SIZE + 3 * 3);
 }
 
-TEST_CASE("ListPack append int64 — int16", "[list_pack]")
+TEST_CASE("ListPack append int64 — int16", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::numeric_limits<int16_t>::min());
@@ -96,7 +96,7 @@ TEST_CASE("ListPack append int64 — int16", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 2 * 4);
 }
 
-TEST_CASE("ListPack append int64 — int24", "[list_pack]")
+TEST_CASE("ListPack append int64 — int24", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(-8388608);
@@ -107,7 +107,7 @@ TEST_CASE("ListPack append int64 — int24", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 2 * 5);
 }
 
-TEST_CASE("ListPack append int64 — int32", "[list_pack]")
+TEST_CASE("ListPack append int64 — int32", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::numeric_limits<int32_t>::min());
@@ -118,7 +118,7 @@ TEST_CASE("ListPack append int64 — int32", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 2 * 6);
 }
 
-TEST_CASE("ListPack append int64 — int64", "[list_pack]")
+TEST_CASE("ListPack append int64 — int64", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::numeric_limits<int64_t>::min());
@@ -129,7 +129,7 @@ TEST_CASE("ListPack append int64 — int64", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 2 * 10);
 }
 
-TEST_CASE("ListPack append string — str6 (< 64 字节)", "[list_pack]")
+TEST_CASE("ListPack append string — str6 (< 64 字节)", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     std::string s(10, 'x');
@@ -140,7 +140,7 @@ TEST_CASE("ListPack append string — str6 (< 64 字节)", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 12);
 }
 
-TEST_CASE("ListPack append string — str12 (64~4095 字节)", "[list_pack]")
+TEST_CASE("ListPack append string — str12 (64~4095 字节)", "[redis][list_pack]")
 {
     ListPack lp{ 256 };
     std::string s(100, 'a');
@@ -151,7 +151,7 @@ TEST_CASE("ListPack append string — str12 (64~4095 字节)", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 103);
 }
 
-TEST_CASE("ListPack append string — str32 (>= 4096 字节)", "[list_pack]")
+TEST_CASE("ListPack append string — str32 (>= 4096 字节)", "[redis][list_pack]")
 {
     ListPack lp{ 8192 };
     std::string s(5000, 'z');
@@ -162,7 +162,7 @@ TEST_CASE("ListPack append string — str32 (>= 4096 字节)", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 5007);
 }
 
-TEST_CASE("ListPack 数字字符串走整数路径", "[list_pack]")
+TEST_CASE("ListPack 数字字符串走整数路径", "[redis][list_pack]")
 {
     ListPack lp1{ 64 };
     ListPack lp2{ 64 };
@@ -175,7 +175,7 @@ TEST_CASE("ListPack 数字字符串走整数路径", "[list_pack]")
     CHECK(lp1.view() == lp2.view());
 }
 
-TEST_CASE("ListPack 多次 append 累加 size", "[list_pack]")
+TEST_CASE("ListPack 多次 append 累加 size", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     for (int i = 0; i < 10; ++i)
@@ -186,7 +186,7 @@ TEST_CASE("ListPack 多次 append 累加 size", "[list_pack]")
 
 // ── insert 路径 ─────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack insert int64 — 中间插入保持顺序", "[list_pack]")
+TEST_CASE("ListPack insert int64 — 中间插入保持顺序", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(1);
@@ -200,7 +200,7 @@ TEST_CASE("ListPack insert int64 — 中间插入保持顺序", "[list_pack]")
     check_int_sequence(lp, { 1, 2, 3 });
 }
 
-TEST_CASE("ListPack insert string — 头尾插入", "[list_pack]")
+TEST_CASE("ListPack insert string — 头尾插入", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::string_view{ "mid" });
@@ -212,7 +212,7 @@ TEST_CASE("ListPack insert string — 头尾插入", "[list_pack]")
     check_string_sequence(lp, { "head", "mid", "tail" });
 }
 
-TEST_CASE("ListPack insert 数字字符串走整数路径", "[list_pack]")
+TEST_CASE("ListPack insert 数字字符串走整数路径", "[redis][list_pack]")
 {
     ListPack lp1{ 64 };
     ListPack lp2{ 64 };
@@ -236,7 +236,7 @@ TEST_CASE("ListPack insert 数字字符串走整数路径", "[list_pack]")
     CHECK(lp1.view() == lp2.view());
 }
 
-TEST_CASE("ListPack insert '0' 开头字符串不走整数路径", "[list_pack]")
+TEST_CASE("ListPack insert '0' 开头字符串不走整数路径", "[redis][list_pack]")
 {
     ListPack lp1{ 64 };
     ListPack lp2{ 64 };
@@ -253,7 +253,7 @@ TEST_CASE("ListPack insert '0' 开头字符串不走整数路径", "[list_pack]"
 
 // ── erase 路径 ──────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack erase 单个元素 — 删除中间元素", "[list_pack]")
+TEST_CASE("ListPack erase 单个元素 — 删除中间元素", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     lp.push_back(1);
@@ -269,7 +269,7 @@ TEST_CASE("ListPack erase 单个元素 — 删除中间元素", "[list_pack]")
     check_int_sequence(lp, { 1, 3, 4 });
 }
 
-TEST_CASE("ListPack erase 区间 — 删除中间连续元素", "[list_pack]")
+TEST_CASE("ListPack erase 区间 — 删除中间连续元素", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     for (int i = 1; i <= 6; ++i)
@@ -288,7 +288,7 @@ TEST_CASE("ListPack erase 区间 — 删除中间连续元素", "[list_pack]")
     check_int_sequence(lp, { 1, 5, 6 });
 }
 
-TEST_CASE("ListPack erase 区间 — first==last 时无变化", "[list_pack]")
+TEST_CASE("ListPack erase 区间 — first==last时无变化", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(10);
@@ -306,7 +306,7 @@ TEST_CASE("ListPack erase 区间 — first==last 时无变化", "[list_pack]")
     check_int_sequence(lp, { 10, 20 });
 }
 
-TEST_CASE("ListPack erase 区间 — 删除全部元素", "[list_pack]")
+TEST_CASE("ListPack erase 区间 — 删除全部元素", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     lp.push_back(7);
@@ -320,7 +320,7 @@ TEST_CASE("ListPack erase 区间 — 删除全部元素", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE);
 }
 
-TEST_CASE("ListPack erase 混合类型 — 删除字符串元素", "[list_pack]")
+TEST_CASE("ListPack erase 混合类型 — 删除字符串元素", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     lp.push_back(1);
@@ -346,7 +346,7 @@ TEST_CASE("ListPack erase 混合类型 — 删除字符串元素", "[list_pack]"
 
 // ── 解码往返 ──────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack 正向迭代 — 整数解码往返", "[list_pack]")
+TEST_CASE("ListPack 正向迭代 — 整数解码往返", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     lp.push_back(0);
@@ -381,7 +381,7 @@ TEST_CASE("ListPack 正向迭代 — 整数解码往返", "[list_pack]")
 }
 
 // ── 边界分类 ──────────────────────────────────────────────────────────────
-TEST_CASE("ListPack int13 边界 — -4096 和 4095", "[list_pack]")
+TEST_CASE("ListPack int13 边界 — -4096 和 4095", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(-4096);
@@ -393,7 +393,7 @@ TEST_CASE("ListPack int13 边界 — -4096 和 4095", "[list_pack]")
     check_int_sequence(lp, { -4096, 4095 });
 }
 
-TEST_CASE("ListPack int7/int13 边界 — 127 vs 128", "[list_pack]")
+TEST_CASE("ListPack int7/int13 边界 — 127 vs 128", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(127);
@@ -406,7 +406,7 @@ TEST_CASE("ListPack int7/int13 边界 — 127 vs 128", "[list_pack]")
 
 // ── 字符串路径 ────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack 空字符串走 str6", "[list_pack]")
+TEST_CASE("ListPack 空字符串走 str6", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::string_view{});
@@ -416,7 +416,7 @@ TEST_CASE("ListPack 空字符串走 str6", "[list_pack]")
     CHECK(lp.byte_size() == EMPTY_SIZE + 2);
 }
 
-TEST_CASE("ListPack '0' 开头的字符串不走整数路径", "[list_pack]")
+TEST_CASE("ListPack '0' 开头的字符串不走整数路径", "[redis][list_pack]")
 {
     ListPack lp1{ 64 };
     ListPack lp2{ 64 };
@@ -429,7 +429,7 @@ TEST_CASE("ListPack '0' 开头的字符串不走整数路径", "[list_pack]")
     CHECK(lp1.byte_size() > lp2.byte_size());
 }
 
-TEST_CASE("ListPack 负数字符串走整数路径", "[list_pack]")
+TEST_CASE("ListPack 负数字符串走整数路径", "[redis][list_pack]")
 {
     ListPack lp1{ 64 };
     ListPack lp2{ 64 };
@@ -442,7 +442,7 @@ TEST_CASE("ListPack 负数字符串走整数路径", "[list_pack]")
     CHECK(lp1.view() == lp2.view());
 }
 
-TEST_CASE("ListPack 非数字字符串走 str 路径", "[list_pack]")
+TEST_CASE("ListPack 非数字字符串走 str 路径", "[redis][list_pack]")
 {
     ListPack lp1{ 64 };
     ListPack lp2{ 64 };
@@ -456,7 +456,7 @@ TEST_CASE("ListPack 非数字字符串走 str 路径", "[list_pack]")
 
 // ── 基础行为 ──────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack push_back 基础行为", "[list_pack]")
+TEST_CASE("ListPack push_back 基础行为", "[redis][list_pack]")
 {
     ListPack lp{ 256 };
 
@@ -469,7 +469,7 @@ TEST_CASE("ListPack push_back 基础行为", "[list_pack]")
 
 // ── 字符串解码往返 ────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack str6 解码往返", "[list_pack]")
+TEST_CASE("ListPack str6 解码往返", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::string_view{ "hello" });
@@ -480,7 +480,7 @@ TEST_CASE("ListPack str6 解码往返", "[list_pack]")
     check_string_sequence(lp, { "hello" });
 }
 
-TEST_CASE("ListPack str6 空字符串解码往返", "[list_pack]")
+TEST_CASE("ListPack str6 空字符串解码往返", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::string_view{});
@@ -489,7 +489,7 @@ TEST_CASE("ListPack str6 空字符串解码往返", "[list_pack]")
     check_string_sequence(lp, { "" });
 }
 
-TEST_CASE("ListPack str12 解码往返", "[list_pack]")
+TEST_CASE("ListPack str12 解码往返", "[redis][list_pack]")
 {
     ListPack lp{ 256 };
     std::string s(100, 'a');
@@ -499,7 +499,7 @@ TEST_CASE("ListPack str12 解码往返", "[list_pack]")
     check_string_sequence(lp, { s });
 }
 
-TEST_CASE("ListPack str32 解码往返", "[list_pack]")
+TEST_CASE("ListPack str32 解码往返", "[redis][list_pack]")
 {
     ListPack lp{ 8192 };
     std::string s(5000, 'z');
@@ -511,7 +511,7 @@ TEST_CASE("ListPack str32 解码往返", "[list_pack]")
 
 // ── 混合迭代 ──────────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack 混合整数与字符串正向迭代", "[list_pack]")
+TEST_CASE("ListPack 混合整数与字符串正向迭代", "[redis][list_pack]")
 {
     ListPack lp{ 256 };
     lp.push_back(42);                        // int7, 2 字节
@@ -544,7 +544,7 @@ TEST_CASE("ListPack 混合整数与字符串正向迭代", "[list_pack]")
     CHECK(it == lp.end());
 }
 
-TEST_CASE("ListPack str6 多个元素正向迭代", "[list_pack]")
+TEST_CASE("ListPack str6 多个元素正向迭代", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     const std::vector<std::string_view> words = { "foo", "bar", "baz", "qux" };
@@ -557,7 +557,7 @@ TEST_CASE("ListPack str6 多个元素正向迭代", "[list_pack]")
 
 // ── operator* 幂等性 ───────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack operator* 幂等 — 整数", "[list_pack]")
+TEST_CASE("ListPack operator* 幂等 — 整数", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(42);
@@ -572,7 +572,7 @@ TEST_CASE("ListPack operator* 幂等 — 整数", "[list_pack]")
     CHECK(std::get<int64_t>(first) == 42);
 }
 
-TEST_CASE("ListPack operator* 幂等 — 字符串", "[list_pack]")
+TEST_CASE("ListPack operator* 幂等 — 字符串", "[redis][list_pack]")
 {
     ListPack lp{ 64 };
     lp.push_back(std::string_view{ "hi" });
@@ -588,7 +588,7 @@ TEST_CASE("ListPack operator* 幂等 — 字符串", "[list_pack]")
 
 // ── operator-- 反向迭代 ───────────────────────────────────────────────────────
 
-TEST_CASE("ListPack operator-- — 整数序列反向迭代", "[list_pack]")
+TEST_CASE("ListPack operator-- — 整数序列反向迭代", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     const std::vector<int64_t> values = { 0, 127, 128, -1, 4095, -4096 };
@@ -608,7 +608,7 @@ TEST_CASE("ListPack operator-- — 整数序列反向迭代", "[list_pack]")
     CHECK(it == lp.begin());
 }
 
-TEST_CASE("ListPack operator-- — 混合序列反向迭代", "[list_pack]")
+TEST_CASE("ListPack operator-- — 混合序列反向迭代", "[redis][list_pack]")
 {
     ListPack lp{ 256 };
     lp.push_back(10);
@@ -627,7 +627,7 @@ TEST_CASE("ListPack operator-- — 混合序列反向迭代", "[list_pack]")
     CHECK(it == lp.begin());
 }
 
-TEST_CASE("ListPack operator-- — 前进再后退回到原位", "[list_pack]")
+TEST_CASE("ListPack operator-- — 前进再后退回到原位", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     lp.push_back(1);
@@ -651,7 +651,7 @@ TEST_CASE("ListPack operator-- — 前进再后退回到原位", "[list_pack]")
 
 // ── range-based for ────────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack range-based for — 整数序列", "[list_pack]")
+TEST_CASE("ListPack range-based for — 整数序列", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     const std::vector<int64_t> values = { 0, 42, -1, 127, 128 };
@@ -667,7 +667,7 @@ TEST_CASE("ListPack range-based for — 整数序列", "[list_pack]")
 
 // ── ReverseIterator ───────────────────────────────────────────────────────────
 
-TEST_CASE("ListPack ReverseIterator — 整数逆序遍历", "[list_pack]")
+TEST_CASE("ListPack ReverseIterator — 整数逆序遍历", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     const std::vector<int64_t> values = { 1, 2, 3, 127, 128, -1 };
@@ -685,7 +685,7 @@ TEST_CASE("ListPack ReverseIterator — 整数逆序遍历", "[list_pack]")
     CHECK(reversed == expected);
 }
 
-TEST_CASE("ListPack ReverseIterator — 混合类型逆序遍历", "[list_pack]")
+TEST_CASE("ListPack ReverseIterator — 混合类型逆序遍历", "[redis][list_pack]")
 {
     ListPack lp{ 256 };
     lp.push_back(10);
@@ -714,7 +714,7 @@ TEST_CASE("ListPack ReverseIterator — 混合类型逆序遍历", "[list_pack]"
     CHECK(it == lp.rend());
 }
 
-TEST_CASE("ListPack ReverseIterator -- 可回退到更新元素", "[list_pack]")
+TEST_CASE("ListPack ReverseIterator -- 可回退到更新元素", "[redis][list_pack]")
 {
     ListPack lp{ 128 };
     lp.push_back(1);

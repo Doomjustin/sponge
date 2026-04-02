@@ -22,7 +22,7 @@ void run_dispatch(ApplicationContext& app,
 
 } // namespace
 
-TEST_CASE("dispatch handles known command case-insensitively", "[commands]")
+TEST_CASE("分发已知命令时应忽略大小写", "[redis][commands]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;

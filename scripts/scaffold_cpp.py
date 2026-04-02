@@ -139,10 +139,6 @@ def main() -> int:
                 "",
                 "#include <catch2/catch_test_macros.hpp>",
                 "",
-                f'TEST_CASE("{name} smoke", "[{name}]") {{',
-                "    SUCCEED();",
-                "}",
-                "",
             ]
         ),
         encoding="utf-8",

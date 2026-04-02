@@ -9,7 +9,7 @@
 
 using namespace spg::redis;
 
-TEST_CASE("reply encodes scalar RESP types", "[reply]")
+TEST_CASE("构造回复时应编码标量RESP类型", "[redis][reply]")
 {
     Reply reply;
     reply.append(42)
@@ -33,7 +33,7 @@ TEST_CASE("reply encodes scalar RESP types", "[reply]")
                            "+OK\r\n");
 }
 
-TEST_CASE("reply appends sized RespRange", "[reply]")
+TEST_CASE("构造回复时应追加定长RespRange", "[redis][reply]")
 {
     std::vector<std::string_view> items{ "GET", "mykey" };
 
@@ -45,7 +45,7 @@ TEST_CASE("reply appends sized RespRange", "[reply]")
                            "$5\r\nmykey\r\n");
 }
 
-TEST_CASE("reply appends non-sized RespRange", "[reply]")
+TEST_CASE("构造回复时应追加非定长RespRange", "[redis][reply]")
 {
     std::forward_list<int> items{ 1, 2, 3 };
 
@@ -58,7 +58,7 @@ TEST_CASE("reply appends non-sized RespRange", "[reply]")
                            ":3\r\n");
 }
 
-TEST_CASE("reply appends RespMap as flat array", "[reply]")
+TEST_CASE("构造回复时应追加扁平数组形式的RespMap", "[redis][reply]")
 {
     std::vector<std::pair<std::string_view, int>> items{
         { "first", 7 },
@@ -75,7 +75,7 @@ TEST_CASE("reply appends RespMap as flat array", "[reply]")
                            ":9\r\n");
 }
 
-TEST_CASE("reply variadic append prefixes array header", "[reply]")
+TEST_CASE("构造回复可变参数追加时应前置数组头", "[redis][reply]")
 {
     Reply reply;
     reply.append(BulkString{ "SET" }, BulkString{ "key" }, BulkString{ "value" });

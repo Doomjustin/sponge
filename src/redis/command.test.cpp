@@ -16,7 +16,7 @@ auto make_context(ApplicationContext& app, Reply& reply) -> CommandContext
 
 } // namespace
 
-TEST_CASE("set returns ok", "[command]")
+TEST_CASE("执行SET命令时应返回OK", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -28,7 +28,7 @@ TEST_CASE("set returns ok", "[command]")
     REQUIRE(reply.str() == "+OK\r\n");
 }
 
-TEST_CASE("get returns bulk string for existing key", "[command]")
+TEST_CASE("执行GET命令时应返回存在键的批量字符串", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -42,7 +42,7 @@ TEST_CASE("get returns bulk string for existing key", "[command]")
     REQUIRE(reply.str() == "$1\r\nv\r\n");
 }
 
-TEST_CASE("mset returns ok", "[command]")
+TEST_CASE("执行MSET命令时应返回OK", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -54,7 +54,7 @@ TEST_CASE("mset returns ok", "[command]")
     REQUIRE(reply.str() == "+OK\r\n");
 }
 
-TEST_CASE("mget returns array with existing and missing values", "[command]")
+TEST_CASE("执行MGET命令时应返回包含存在值与缺失值的数组", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -69,7 +69,7 @@ TEST_CASE("mget returns array with existing and missing values", "[command]")
     REQUIRE(reply.str() == "*3\r\n$2\r\nv1\r\n$-1\r\n$2\r\nv2\r\n");
 }
 
-TEST_CASE("incr initializes missing key to one", "[command]")
+TEST_CASE("执行INCR命令且键缺失时应初始化为1", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -80,7 +80,7 @@ TEST_CASE("incr initializes missing key to one", "[command]")
     REQUIRE(reply.str() == ":1\r\n");
 }
 
-TEST_CASE("decrby decreases existing integer value", "[command]")
+TEST_CASE("执行DECRBY命令且键为整数时应减少其值", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -94,7 +94,7 @@ TEST_CASE("decrby decreases existing integer value", "[command]")
     REQUIRE(reply.str() == ":1\r\n");
 }
 
-TEST_CASE("append returns new length", "[command]")
+TEST_CASE("执行APPEND命令时应返回新长度", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -108,7 +108,7 @@ TEST_CASE("append returns new length", "[command]")
     REQUIRE(reply.str() == ":4\r\n");
 }
 
-TEST_CASE("strlen returns zero for missing key", "[command]")
+TEST_CASE("执行STRLEN命令时应返回0（键缺失）", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -119,7 +119,7 @@ TEST_CASE("strlen returns zero for missing key", "[command]")
     REQUIRE(reply.str() == ":0\r\n");
 }
 
-TEST_CASE("hset returns added field count", "[command]")
+TEST_CASE("执行HSET命令时应返回新增字段数量", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -131,7 +131,7 @@ TEST_CASE("hset returns added field count", "[command]")
     REQUIRE(reply.str() == ":1\r\n");
 }
 
-TEST_CASE("hlen returns field count", "[command]")
+TEST_CASE("执行HLEN命令时应返回字段数量", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -145,7 +145,7 @@ TEST_CASE("hlen returns field count", "[command]")
     REQUIRE(reply.str() == ":2\r\n");
 }
 
-TEST_CASE("hget returns null for missing key", "[command]")
+TEST_CASE("执行HGET命令时应返回缺失键的空值", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -156,7 +156,7 @@ TEST_CASE("hget returns null for missing key", "[command]")
     REQUIRE(reply.str() == "$-1\r\n");
 }
 
-TEST_CASE("hgetall returns empty array for missing key", "[command]")
+TEST_CASE("执行HGETALL命令且键缺失时应返回空数组", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -167,7 +167,7 @@ TEST_CASE("hgetall returns empty array for missing key", "[command]")
     REQUIRE(reply.str() == "*0\r\n");
 }
 
-TEST_CASE("hkeys returns empty array for missing key", "[command]")
+TEST_CASE("执行HKEYS命令且键缺失时应返回空数组", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -178,7 +178,7 @@ TEST_CASE("hkeys returns empty array for missing key", "[command]")
     REQUIRE(reply.str() == "*0\r\n");
 }
 
-TEST_CASE("hvals returns empty array for missing key", "[command]")
+TEST_CASE("执行HVALS命令且键缺失时应返回空数组", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -189,7 +189,7 @@ TEST_CASE("hvals returns empty array for missing key", "[command]")
     REQUIRE(reply.str() == "*0\r\n");
 }
 
-TEST_CASE("lpush returns list length", "[command]")
+TEST_CASE("执行LPUSH命令时应返回列表长度", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -201,7 +201,7 @@ TEST_CASE("lpush returns list length", "[command]")
     REQUIRE(reply.str() == ":2\r\n");
 }
 
-TEST_CASE("lrange returns requested members", "[command]")
+TEST_CASE("执行LRANGE命令时应返回请求的成员", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -215,7 +215,7 @@ TEST_CASE("lrange returns requested members", "[command]")
     REQUIRE(reply.str() == "*2\r\n$1\r\na\r\n$1\r\nb\r\n");
 }
 
-TEST_CASE("zadd returns added count", "[command]")
+TEST_CASE("执行ZADD命令时应返回新增数量", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -227,7 +227,7 @@ TEST_CASE("zadd returns added count", "[command]")
     REQUIRE(reply.str() == ":1\r\n");
 }
 
-TEST_CASE("zrange returns members by score order", "[command]")
+TEST_CASE("执行ZRANGE命令时应返回按分数排序的成员", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -243,7 +243,7 @@ TEST_CASE("zrange returns members by score order", "[command]")
 
 // -------- error / edge cases for existing commands --------
 
-TEST_CASE("get returns null for missing key", "[command]")
+TEST_CASE("执行GET命令时应返回缺失键的空值", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -254,7 +254,7 @@ TEST_CASE("get returns null for missing key", "[command]")
     REQUIRE(reply.str() == "$-1\r\n");
 }
 
-TEST_CASE("incr returns error for non-integer value", "[command]")
+TEST_CASE("执行INCR命令时应返回非整数值错误", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -268,7 +268,7 @@ TEST_CASE("incr returns error for non-integer value", "[command]")
     REQUIRE(reply.str() == "-ERR value is not an integer or out of range\r\n");
 }
 
-TEST_CASE("set with nx does not overwrite existing key", "[command]")
+TEST_CASE("执行SET NX且键已存在时应不覆盖旧值", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -283,7 +283,7 @@ TEST_CASE("set with nx does not overwrite existing key", "[command]")
     REQUIRE(reply.str() == "$-1\r\n");
 }
 
-TEST_CASE("lrange on missing key returns empty array", "[command]")
+TEST_CASE("执行LRANGE命令且键缺失时应返回空数组", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -294,7 +294,7 @@ TEST_CASE("lrange on missing key returns empty array", "[command]")
     REQUIRE(reply.str() == "*0\r\n");
 }
 
-TEST_CASE("hget returns error on type mismatch", "[command]")
+TEST_CASE("执行HGET命令时应返回类型不匹配错误", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -308,7 +308,7 @@ TEST_CASE("hget returns error on type mismatch", "[command]")
     REQUIRE(reply.str().starts_with("-ERR"));
 }
 
-TEST_CASE("llen returns zero for missing key", "[command]")
+TEST_CASE("执行LLEN命令时应返回0（键缺失）", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -321,7 +321,7 @@ TEST_CASE("llen returns zero for missing key", "[command]")
 
 // -------- hkeys / hvals / hexists --------
 
-TEST_CASE("hkeys returns field names of hash", "[command]")
+TEST_CASE("执行HKEYS命令时应返回哈希字段名集合", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -335,7 +335,7 @@ TEST_CASE("hkeys returns field names of hash", "[command]")
     REQUIRE(reply.str() == "*1\r\n$1\r\nf\r\n");
 }
 
-TEST_CASE("hvals returns values of hash", "[command]")
+TEST_CASE("执行HVALS命令时应返回哈希值集合", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -349,7 +349,7 @@ TEST_CASE("hvals returns values of hash", "[command]")
     REQUIRE(reply.str() == "*1\r\n$1\r\nv\r\n");
 }
 
-TEST_CASE("hexists returns one for existing field", "[command]")
+TEST_CASE("执行HEXISTS命令时应返回1（字段存在）", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -363,7 +363,7 @@ TEST_CASE("hexists returns one for existing field", "[command]")
     REQUIRE(reply.str() == ":1\r\n");
 }
 
-TEST_CASE("hexists returns zero for missing field", "[command]")
+TEST_CASE("执行HEXISTS命令时应返回0（字段缺失）", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -379,7 +379,7 @@ TEST_CASE("hexists returns zero for missing field", "[command]")
 
 // -------- lindex / lset / ltrim --------
 
-TEST_CASE("lindex returns element at positive index", "[command]")
+TEST_CASE("执行LINDEX命令时应返回正索引位置元素", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -393,7 +393,7 @@ TEST_CASE("lindex returns element at positive index", "[command]")
     REQUIRE(reply.str() == "$1\r\nb\r\n");
 }
 
-TEST_CASE("lindex returns element at negative index", "[command]")
+TEST_CASE("执行LINDEX命令时应返回负索引位置元素", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -407,7 +407,7 @@ TEST_CASE("lindex returns element at negative index", "[command]")
     REQUIRE(reply.str() == "$1\r\nc\r\n");
 }
 
-TEST_CASE("lindex returns null for out of range index", "[command]")
+TEST_CASE("执行LINDEX命令时应返回越界索引空值", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -421,7 +421,7 @@ TEST_CASE("lindex returns null for out of range index", "[command]")
     REQUIRE(reply.str() == "$-1\r\n");
 }
 
-TEST_CASE("lset updates element at index", "[command]")
+TEST_CASE("执行LSET命令更新指定索引时应更新成功", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -436,7 +436,7 @@ TEST_CASE("lset updates element at index", "[command]")
     REQUIRE(reply.str() == "$1\r\nx\r\n");
 }
 
-TEST_CASE("lset returns error for out of range index", "[command]")
+TEST_CASE("执行LSET命令时应返回索引越界错误", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -450,7 +450,7 @@ TEST_CASE("lset returns error for out of range index", "[command]")
     REQUIRE(reply.str().starts_with("-ERR"));
 }
 
-TEST_CASE("ltrim reduces list to specified range", "[command]")
+TEST_CASE("执行LTRIM命令时应裁剪到指定范围", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -467,7 +467,7 @@ TEST_CASE("ltrim reduces list to specified range", "[command]")
 
 // -------- zcount / zrank --------
 
-TEST_CASE("zcount counts members within score range", "[command]")
+TEST_CASE("执行ZCOUNT命令时应统计分数范围内成员数", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -481,7 +481,7 @@ TEST_CASE("zcount counts members within score range", "[command]")
     REQUIRE(reply.str() == ":2\r\n");
 }
 
-TEST_CASE("zrank returns zero-based rank of member", "[command]")
+TEST_CASE("执行ZRANK命令时应返回成员的零基排名", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;
@@ -495,7 +495,7 @@ TEST_CASE("zrank returns zero-based rank of member", "[command]")
     REQUIRE(reply.str() == ":1\r\n");
 }
 
-TEST_CASE("zrank returns null for missing member", "[command]")
+TEST_CASE("执行ZRANK命令且成员缺失时应返回空值", "[redis][command]")
 {
     ApplicationContext app{ 1, "/dev/null" };
     Reply reply;

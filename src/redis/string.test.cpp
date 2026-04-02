@@ -79,7 +79,7 @@ struct ResourceGuard {
 
 } // namespace
 
-TEST_CASE("String allocates and frees memory", "[redis][string]")
+TEST_CASE("String分配并释放内存", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -97,7 +97,7 @@ TEST_CASE("String allocates and frees memory", "[redis][string]")
 	REQUIRE(resource.outstanding() == 0);
 }
 
-TEST_CASE("String handles empty string", "[redis][string]")
+TEST_CASE("String处理空字符串", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -113,7 +113,7 @@ TEST_CASE("String handles empty string", "[redis][string]")
 	REQUIRE(resource.outstanding() == 0);
 }
 
-TEST_CASE("String move constructor transfers ownership", "[redis][string]")
+TEST_CASE("String移动构造转移所有权", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -130,7 +130,7 @@ TEST_CASE("String move constructor transfers ownership", "[redis][string]")
 	REQUIRE(resource.outstanding() == 0);
 }
 
-TEST_CASE("String move assignment releases old allocation", "[redis][string]")
+TEST_CASE("String移动赋值释放旧内存", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -154,7 +154,7 @@ TEST_CASE("String move assignment releases old allocation", "[redis][string]")
 	REQUIRE(resource.outstanding() == 0);
 }
 
-TEST_CASE("String self move assignment is safe", "[redis][string]")
+TEST_CASE("String自移动赋值安全", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -170,7 +170,7 @@ TEST_CASE("String self move assignment is safe", "[redis][string]")
 	REQUIRE(resource.outstanding() == 0);
 }
 
-TEST_CASE("String default constructor creates empty string", "[redis][string]")
+TEST_CASE("String默认构造创建空字符串", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -183,7 +183,7 @@ TEST_CASE("String default constructor creates empty string", "[redis][string]")
 	REQUIRE(str.begin() == str.end());
 }
 
-TEST_CASE("String exposes view indexing and iterators", "[redis][string]")
+TEST_CASE("String支持视图索引与迭代器", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -203,7 +203,7 @@ TEST_CASE("String exposes view indexing and iterators", "[redis][string]")
 	REQUIRE(*str.end() == '\0');
 }
 
-TEST_CASE("String copy constructor performs deep copy", "[redis][string]")
+TEST_CASE("String拷贝构造执行深拷贝", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -219,7 +219,7 @@ TEST_CASE("String copy constructor performs deep copy", "[redis][string]")
 	REQUIRE(original.view() == "hello");
 }
 
-TEST_CASE("String copy assignment releases old storage and deep copies", "[redis][string]")
+TEST_CASE("String拷贝赋值释放旧存储并深拷贝", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -242,7 +242,7 @@ TEST_CASE("String copy assignment releases old storage and deep copies", "[redis
 	REQUIRE(original.view() == "hello");
 }
 
-TEST_CASE("String append grows storage and preserves content", "[redis][string]")
+TEST_CASE("String追加时扩容并保持内容", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -259,7 +259,7 @@ TEST_CASE("String append grows storage and preserves content", "[redis][string]"
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String append can reuse available space", "[redis][string]")
+TEST_CASE("String追加可复用可用空间", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -279,7 +279,7 @@ TEST_CASE("String append can reuse available space", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String append empty string keeps content unchanged", "[redis][string]")
+TEST_CASE("String追加空字符串时应保持内容不变", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -300,7 +300,7 @@ TEST_CASE("String append empty string keeps content unchanged", "[redis][string]
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String supports multiple consecutive appends", "[redis][string]")
+TEST_CASE("String连续多次追加", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -318,7 +318,7 @@ TEST_CASE("String supports multiple consecutive appends", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String append crossing 255 capacity preserves content", "[redis][string]")
+TEST_CASE("String跨越255容量追加仍保持内容", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -335,7 +335,7 @@ TEST_CASE("String append crossing 255 capacity preserves content", "[redis][stri
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String reserve is no-op when capacity is sufficient", "[redis][string]")
+TEST_CASE("String容量充足时reserve无操作", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -353,7 +353,7 @@ TEST_CASE("String reserve is no-op when capacity is sufficient", "[redis][string
 	REQUIRE(resource.outstanding() == 1);
 }
 
-TEST_CASE("String reserve expands capacity and preserves content", "[redis][string]")
+TEST_CASE("String reserve扩容并保持内容", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -374,7 +374,7 @@ TEST_CASE("String reserve expands capacity and preserves content", "[redis][stri
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String greedy reserve doubles capacity below prealloc limit", "[redis][string]")
+TEST_CASE("String贪婪reserve在预分配阈值下容量翻倍", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -392,7 +392,7 @@ TEST_CASE("String greedy reserve doubles capacity below prealloc limit", "[redis
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String resize extends length with zero bytes", "[redis][string]")
+TEST_CASE("String resize扩展长度并补零字节", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -415,7 +415,7 @@ TEST_CASE("String resize extends length with zero bytes", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String resize can shrink without reallocation", "[redis][string]")
+TEST_CASE("String resize缩短长度且不重分配", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -433,7 +433,7 @@ TEST_CASE("String resize can shrink without reallocation", "[redis][string]")
 	REQUIRE(resource.deallocations() == deallocs_before);
 }
 
-TEST_CASE("String clear resets size without deallocating buffer", "[redis][string]")
+TEST_CASE("String clear重置长度且不释放缓冲区", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -455,7 +455,7 @@ TEST_CASE("String clear resets size without deallocating buffer", "[redis][strin
 	REQUIRE(resource.outstanding() == 1);
 }
 
-TEST_CASE("String clear allows reuse of buffer without reallocating", "[redis][string]")
+TEST_CASE("String clear后可复用缓冲区且不重分配", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -480,7 +480,7 @@ TEST_CASE("String clear allows reuse of buffer without reallocating", "[redis][s
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String assign replaces content within existing capacity", "[redis][string]")
+TEST_CASE("String assign在现有容量内替换内容", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -502,7 +502,7 @@ TEST_CASE("String assign replaces content within existing capacity", "[redis][st
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String assign reallocates when content exceeds capacity", "[redis][string]")
+TEST_CASE("String assign在内容超容量时重分配", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -522,7 +522,7 @@ TEST_CASE("String assign reallocates when content exceeds capacity", "[redis][st
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("String self copy assignment is safe", "[redis][string]")
+TEST_CASE("String自拷贝赋值安全", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -543,7 +543,7 @@ TEST_CASE("String self copy assignment is safe", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("string_cast converts signed positive and zero", "[redis][string]")
+TEST_CASE("string_cast转换有符号正数与零", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -560,7 +560,7 @@ TEST_CASE("string_cast converts signed positive and zero", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("string_cast converts signed negative values", "[redis][string]")
+TEST_CASE("string_cast转换有符号负数", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -574,7 +574,7 @@ TEST_CASE("string_cast converts signed negative values", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("string_cast handles signed limits", "[redis][string]")
+TEST_CASE("string_cast处理有符号边界值", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -591,7 +591,7 @@ TEST_CASE("string_cast handles signed limits", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("string_cast handles unsigned values and limits", "[redis][string]")
+TEST_CASE("string_cast处理无符号值与边界值", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -608,7 +608,7 @@ TEST_CASE("string_cast handles unsigned values and limits", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("format allocates via default resource", "[redis][string]")
+TEST_CASE("format通过默认资源分配", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -628,7 +628,7 @@ TEST_CASE("format allocates via default resource", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("format can format String argument via format_as", "[redis][string]")
+TEST_CASE("format可通过format_as格式化String参数", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
@@ -649,20 +649,31 @@ TEST_CASE("format can format String argument via format_as", "[redis][string]")
 	REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("format supports escaped braces and mixed argument types", "[redis][string]")
+TEST_CASE("format支持转义花括号", "[redis][string]")
+{
+	CountingResource resource{};
+	ResourceGuard guard{ resource };
+	auto out = spg::redis::format("{{user}}={}", "bob");
+
+	REQUIRE(out.view() == "{user}=bob");
+	REQUIRE(resource.allocations() >= 1);
+	REQUIRE(resource.outstanding() >= 1);
+}
+
+TEST_CASE("format支持混合参数类型", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };
 	spg::redis::String user{ "bob" };
 
-	auto out = spg::redis::format("{{user}}={} active={} score={}", user, true, 42);
+	auto out = spg::redis::format("user={} active={} score={}", user, true, 42);
 
-	REQUIRE(out.view() == "{user}=bob active=true score=42");
+	REQUIRE(out.view() == "user=bob active=true score=42");
 	REQUIRE(resource.allocations() >= 2);
 	REQUIRE(resource.outstanding() >= 1);
 }
 
-TEST_CASE("format handles long content growth", "[redis][string]")
+TEST_CASE("format处理长内容增长", "[redis][string]")
 {
 	CountingResource resource{};
 	ResourceGuard guard{ resource };

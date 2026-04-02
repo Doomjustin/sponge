@@ -80,7 +80,7 @@ struct ResourceGuard {
 
 } // namespace
 
-TEST_CASE("SDS create stores string and null terminator", "[sds][manager]")
+TEST_CASE("SDS创建字符串时应保存内容与空终止符", "[redis][sds]")
 {
     CountingResource resource{};
     ResourceGuard guard{ resource };
@@ -99,7 +99,7 @@ TEST_CASE("SDS create stores string and null terminator", "[sds][manager]")
     REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("SDS create with explicit capacity keeps content", "[sds][manager]")
+TEST_CASE("SDS按显式容量创建时应保持内容", "[redis][sds]")
 {
     CountingResource resource{};
     ResourceGuard guard{ resource };
@@ -116,7 +116,7 @@ TEST_CASE("SDS create with explicit capacity keeps content", "[sds][manager]")
     REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("SDS chooses Type8 below 256 capacity", "[sds][manager]")
+TEST_CASE("SDS容量小于256时应选择Type8", "[redis][sds]")
 {
     CountingResource resource{};
     ResourceGuard guard{ resource };
@@ -130,7 +130,7 @@ TEST_CASE("SDS chooses Type8 below 256 capacity", "[sds][manager]")
     REQUIRE_FALSE(resource.has_size_mismatch());
 }
 
-TEST_CASE("SDS chooses Type16 at 256 capacity", "[sds][manager]")
+TEST_CASE("SDS容量达到256时应选择Type16", "[redis][sds]")
 {
     CountingResource resource{};
     ResourceGuard guard{ resource };

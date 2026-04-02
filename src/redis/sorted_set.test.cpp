@@ -4,11 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-TEST_CASE("sorted_set smoke", "[sorted_set]") {
-    SUCCEED();
-}
-
-TEST_CASE("sorted_set iterator returns member and score pairs", "[sorted_set]")
+TEST_CASE("sorted_set迭代器应返回成员与分数对", "[redis][sorted_set]")
 {
     spg::redis::SortedSet set;
     REQUIRE(set.add(1.5, "a"));
@@ -27,7 +23,7 @@ TEST_CASE("sorted_set iterator returns member and score pairs", "[sorted_set]")
     REQUIRE(items[1].second == 2.5);
 }
 
-TEST_CASE("sorted_set updates existing member score without duplication", "[sorted_set]")
+TEST_CASE("sorted_set更新已有成员分数时应不产生重复成员", "[redis][sorted_set]")
 {
     spg::redis::SortedSet set;
     REQUIRE(set.add(3.0, "a"));
@@ -48,7 +44,7 @@ TEST_CASE("sorted_set updates existing member score without duplication", "[sort
     REQUIRE(items[0].second == 1.0);
 }
 
-TEST_CASE("sorted_set keeps numeric members as strings in listpack backend", "[sorted_set]")
+TEST_CASE("sorted_set在listpack后端保持数字成员为字符串", "[redis][sorted_set]")
 {
     spg::redis::SortedSet set;
     REQUIRE(set.add(2.0, "2"));
@@ -65,7 +61,7 @@ TEST_CASE("sorted_set keeps numeric members as strings in listpack backend", "[s
     REQUIRE(items[1] == std::pair<std::string, double>{ "2", 2.0 });
 }
 
-TEST_CASE("sorted_set keeps iterator behavior after upgrade to skiplist backend", "[sorted_set]")
+TEST_CASE("sorted_set升级到skiplist后保持迭代行为", "[redis][sorted_set]")
 {
     spg::redis::SortedSet set;
     for (int i = 0; i < 130; ++i)
@@ -83,7 +79,7 @@ TEST_CASE("sorted_set keeps iterator behavior after upgrade to skiplist backend"
     REQUIRE(count == 130);
 }
 
-TEST_CASE("sorted_set orders same-score members lexicographically", "[sorted_set]")
+TEST_CASE("sorted_set同分成员按字典序排序", "[redis][sorted_set]")
 {
     spg::redis::SortedSet set;
     REQUIRE(set.add(1.0, "c"));
@@ -100,7 +96,7 @@ TEST_CASE("sorted_set orders same-score members lexicographically", "[sorted_set
     REQUIRE(members == std::vector<std::string>{ "a", "b", "c" });
 }
 
-TEST_CASE("sorted_set contains and score remain correct after upgrade", "[sorted_set]")
+TEST_CASE("sorted_set升级后contains应保持正确", "[redis][sorted_set]")
 {
     spg::redis::SortedSet set;
     for (int i = 0; i < 130; ++i)
@@ -110,6 +106,13 @@ TEST_CASE("sorted_set contains and score remain correct after upgrade", "[sorted
     REQUIRE(set.contains("64"));
     REQUIRE(set.contains("129"));
     REQUIRE_FALSE(set.contains("130"));
+}
+
+TEST_CASE("sorted_set升级后score应保持正确", "[redis][sorted_set]")
+{
+    spg::redis::SortedSet set;
+    for (int i = 0; i < 130; ++i)
+        REQUIRE(set.add(static_cast<double>(i), std::to_string(i)));
 
     auto zero = set.score("0");
     auto middle = set.score("64");
@@ -125,7 +128,7 @@ TEST_CASE("sorted_set contains and score remain correct after upgrade", "[sorted
     REQUIRE_FALSE(missing.has_value());
 }
 
-TEST_CASE("sorted_set supports const iteration", "[sorted_set]")
+TEST_CASE("sorted_set支持常量迭代", "[redis][sorted_set]")
 {
     spg::redis::SortedSet mutable_set;
     REQUIRE(mutable_set.add(2.0, "b"));

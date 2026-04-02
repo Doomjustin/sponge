@@ -8,7 +8,7 @@
 
 using namespace spg;
 
-TEST_CASE("numeric_cast 应转换有效的整数", "[utility]")
+TEST_CASE("numeric_cast 在输入合法整数时应转换成功", "[common][utility]")
 {
     auto res = numeric_cast<int>("123");
 
@@ -16,7 +16,7 @@ TEST_CASE("numeric_cast 应转换有效的整数", "[utility]")
     REQUIRE(*res == 123);
 }
 
-TEST_CASE("numeric_cast 应报告 invalid_argument", "[utility]")
+TEST_CASE("numeric_cast 在非法输入时应返回 invalid_argument", "[common][utility]")
 {
     auto res = numeric_cast<int>("abc");
 
@@ -24,7 +24,7 @@ TEST_CASE("numeric_cast 应报告 invalid_argument", "[utility]")
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast 应报告 out_of_range", "[utility]")
+TEST_CASE("numeric_cast 在超出范围时应返回 out_of_range", "[common][utility]")
 {
     auto res = numeric_cast<std::int8_t>("200");
 
@@ -32,7 +32,7 @@ TEST_CASE("numeric_cast 应报告 out_of_range", "[utility]")
     REQUIRE(res.error() == std::make_error_code(std::errc::result_out_of_range));
 }
 
-TEST_CASE("numeric_cast 应处理负整数", "[utility]")
+TEST_CASE("numeric_cast 应正确转换负整数", "[common][utility]")
 {
     auto res = numeric_cast<int>("-456");
 
@@ -40,7 +40,7 @@ TEST_CASE("numeric_cast 应处理负整数", "[utility]")
     REQUIRE(*res == -456);
 }
 
-TEST_CASE("numeric_cast 应处理零", "[utility]")
+TEST_CASE("numeric_cast 应正确转换零值", "[common][utility]")
 {
     auto res = numeric_cast<int>("0");
 
@@ -48,7 +48,7 @@ TEST_CASE("numeric_cast 应处理零", "[utility]")
     REQUIRE(*res == 0);
 }
 
-TEST_CASE("numeric_cast 应处理大整数", "[utility]")
+TEST_CASE("numeric_cast 应正确转换大整数", "[common][utility]")
 {
     auto res = numeric_cast<long long>("9223372036854775807");
 
@@ -56,7 +56,7 @@ TEST_CASE("numeric_cast 应处理大整数", "[utility]")
     REQUIRE(*res == 9223372036854775807LL);
 }
 
-TEST_CASE("numeric_cast 对于无符号整数类型应拒绝负整数", "[utility]")
+TEST_CASE("numeric_cast 在无符号类型下应拒绝负整数", "[common][utility]")
 {
     auto res = numeric_cast<unsigned int>("-1");
 
@@ -64,7 +64,7 @@ TEST_CASE("numeric_cast 对于无符号整数类型应拒绝负整数", "[utilit
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast 应处理空字符串", "[utility]")
+TEST_CASE("numeric_cast 在空字符串输入时应返回 invalid_argument", "[common][utility]")
 {
     auto res = numeric_cast<int>("");
 
@@ -72,7 +72,7 @@ TEST_CASE("numeric_cast 应处理空字符串", "[utility]")
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast 应处理仅空格字符串", "[utility]")
+TEST_CASE("numeric_cast 在全空白字符串输入时应返回 invalid_argument", "[common][utility]")
 {
     auto res = numeric_cast<int>("   ");
 
@@ -80,7 +80,7 @@ TEST_CASE("numeric_cast 应处理仅空格字符串", "[utility]")
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("numeric_cast 应报告部分有效数字的无效", "[utility]")
+TEST_CASE("numeric_cast 在部分有效数字输入时应返回 invalid_argument", "[common][utility]")
 {
     // numeric_cast 要求整串完全匹配，因此 "123abc" 应视为非法。
     auto res = numeric_cast<int>("123abc");
@@ -89,56 +89,56 @@ TEST_CASE("numeric_cast 应报告部分有效数字的无效", "[utility]")
     REQUIRE(res.error() == std::make_error_code(std::errc::invalid_argument));
 }
 
-TEST_CASE("to_uppercase 应将小写字母改为大写并不改下于性文字", "[utility]")
+TEST_CASE("to_uppercase 应将小写字母转换为大写", "[common][utility]")
 {
     auto result{ to_uppercase("aB1-?z") };
 
     REQUIRE(result == "AB1-?Z");
 }
 
-TEST_CASE("to_lowercase 应佰改大写字母并不加处理靠字符", "[utility]") {
+TEST_CASE("to_lowercase 应将大写字母转换为小写", "[common][utility]") {
     auto result{ to_lowercase("Ab1-?Z") };
 
     REQUIRE(result == "ab1-?z");
 }
 
-TEST_CASE("to_uppercase 对于空字符串应返回空", "[utility]") {
+TEST_CASE("to_uppercase 在空字符串输入时应返回空字符串", "[common][utility]") {
     auto result{ to_uppercase("") };
 
     REQUIRE(result == "");
 }
 
-TEST_CASE("to_lowercase 对于空字符串应返回空", "[utility]") {
+TEST_CASE("to_lowercase 在空字符串输入时应返回空字符串", "[common][utility]") {
     auto result{ to_lowercase("") };
 
     REQUIRE(result == "");
 }
 
-TEST_CASE("to_uppercase 应保持已有的大写字母", "[utility]") {
+TEST_CASE("to_uppercase 应保持已有的大写字母", "[common][utility]") {
     auto result{ to_uppercase("HELLO WORLD") };
 
     REQUIRE(result == "HELLO WORLD");
 }
 
-TEST_CASE("to_lowercase 应保持已有的小写字母", "[utility]") {
+TEST_CASE("to_lowercase 应保持已有的小写字母", "[common][utility]") {
     auto result{ to_lowercase("hello world") };
 
     REQUIRE(result == "hello world");
 }
 
-TEST_CASE("to_uppercase 应处理特殊字符和数字", "[utility]") {
+TEST_CASE("to_uppercase 应处理特殊字符和数字", "[common][utility]") {
     auto result{ to_uppercase("aBc!@#$%^&*()123XyZ") };
 
     REQUIRE(result == "ABC!@#$%^&*()123XYZ");
 }
 
-TEST_CASE("to_lowercase 应处理特殊字符和数字", "[utility]") {
+TEST_CASE("to_lowercase 应处理特殊字符和数字", "[common][utility]") {
     auto result{ to_lowercase("aBc!@#$%^&*()123XyZ") };
 
     REQUIRE(result == "abc!@#$%^&*()123xyz");
 }
 
-TEST_CASE("string_cast 应转换浮点数并能解析回来", "[utility]") {
+TEST_CASE("string_cast 应输出可被 numeric_cast 解析的浮点文本", "[common][utility]") {
     const double input = 3.141592653589793;
     auto text = string_cast(input);
 

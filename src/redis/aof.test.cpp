@@ -34,7 +34,7 @@ void wait_until(std::chrono::milliseconds timeout, const std::function<bool()>& 
 
 } // namespace
 
-TEST_CASE("aof append persists command", "[aof]")
+TEST_CASE("AOF追加后持久化命令", "[redis][aof]")
 {
     auto dir = fs::temp_directory_path() / "sponge-aof-test";
     fs::create_directories(dir);
@@ -53,7 +53,7 @@ TEST_CASE("aof append persists command", "[aof]")
     fs::remove(file);
 }
 
-TEST_CASE("aof reset clears file", "[aof]")
+TEST_CASE("AOF重置后清空文件", "[redis][aof]")
 {
     auto dir = fs::temp_directory_path() / "sponge-aof-test";
     fs::create_directories(dir);
@@ -77,7 +77,7 @@ TEST_CASE("aof reset clears file", "[aof]")
     fs::remove(file);
 }
 
-TEST_CASE("aof background rewrite dumps string key", "[aof]")
+TEST_CASE("AOF后台重写转储字符串键", "[redis][aof]")
 {
     auto dir = fs::temp_directory_path() / "sponge-aof-test";
     fs::create_directories(dir);
@@ -109,7 +109,7 @@ TEST_CASE("aof background rewrite dumps string key", "[aof]")
     fs::remove(file);
 }
 
-TEST_CASE("aof rewrite encodes integral with EX", "[aof]")
+TEST_CASE("AOF重写时应使用EX编码整数", "[redis][aof]")
 {
     auto dir = fs::temp_directory_path() / "sponge-aof-test";
     fs::create_directories(dir);
@@ -143,7 +143,7 @@ TEST_CASE("aof rewrite encodes integral with EX", "[aof]")
     fs::remove(file);
 }
 
-TEST_CASE("aof rewrite encodes hash and list values", "[aof]")
+TEST_CASE("AOF重写时应编码哈希值", "[redis][aof]")
 {
     auto dir = fs::temp_directory_path() / "sponge-aof-test";
     fs::create_directories(dir);
@@ -159,6 +159,35 @@ TEST_CASE("aof rewrite encodes hash and list values", "[aof]")
         table->insert_or_assign(std::pmr::string{ "f1" }, std::pmr::string{ "v1" });
         table->insert_or_assign(std::pmr::string{ "f2" }, std::pmr::string{ "v2" });
     });
+
+    {
+        spg::redis::AOF aof{ file.string() };
+        aof.background_rewrite(shards);
+
+        wait_until(std::chrono::milliseconds{ 1500 }, [&]() {
+            return fs::exists(file) && fs::file_size(file) > 0;
+        });
+    }
+
+    auto data = read_text_file(file);
+    REQUIRE(data.find("HSET") != std::string::npos);
+    REQUIRE(data.find("h") != std::string::npos);
+    REQUIRE(data.find("f1") != std::string::npos);
+    REQUIRE(data.find("v1") != std::string::npos);
+
+    fs::remove(file);
+}
+
+TEST_CASE("AOF重写时应编码列表值", "[redis][aof]")
+{
+    auto dir = fs::temp_directory_path() / "sponge-aof-test";
+    fs::create_directories(dir);
+
+    auto file = dir / "rewrite-hash-list.aof";
+    fs::remove(file);
+
+    std::vector<std::unique_ptr<spg::redis::DBShard>> shards;
+    shards.emplace_back(std::make_unique<spg::redis::DBShard>());
 
     shards[0]->modify("l", [](auto& handler) {
         auto* list = handler.emplace(spg::as_type<spg::redis::DBShard::List>);
@@ -176,10 +205,6 @@ TEST_CASE("aof rewrite encodes hash and list values", "[aof]")
     }
 
     auto data = read_text_file(file);
-    REQUIRE(data.find("HSET") != std::string::npos);
-    REQUIRE(data.find("h") != std::string::npos);
-    REQUIRE(data.find("f1") != std::string::npos);
-    REQUIRE(data.find("v1") != std::string::npos);
     REQUIRE(data.find("RPUSH") != std::string::npos);
     REQUIRE(data.find("l") != std::string::npos);
     REQUIRE(data.find("e1") != std::string::npos);
@@ -187,7 +212,7 @@ TEST_CASE("aof rewrite encodes hash and list values", "[aof]")
     fs::remove(file);
 }
 
-TEST_CASE("aof rewrite encodes zset values", "[aof]")
+TEST_CASE("AOF重写时应编码有序集合值", "[redis][aof]")
 {
     auto dir = fs::temp_directory_path() / "sponge-aof-test";
     fs::create_directories(dir);

@@ -8,7 +8,7 @@ using spg::redis::DBShard;
 using spg::redis::TTLManager;
 using spg::as_type;
 
-TEST_CASE("db_shard set/get/erase entry", "[db_shard]")
+TEST_CASE("db_shard set/get/erase条目", "[redis][db_shard]")
 {
     DBShard shard;
 
@@ -29,7 +29,7 @@ TEST_CASE("db_shard set/get/erase entry", "[db_shard]")
     CHECK(shard.get_entry("k") == nullptr);
 }
 
-TEST_CASE("db_shard modify handles create and expire cleanup", "[db_shard]")
+TEST_CASE("db_shard modify应支持创建新值", "[redis][db_shard]")
 {
     DBShard shard;
 
@@ -46,6 +46,11 @@ TEST_CASE("db_shard modify handles create and expire cleanup", "[db_shard]")
         REQUIRE(value != nullptr);
         CHECK(*value == "v");
     });
+}
+
+TEST_CASE("db_shard modify应清理已过期键", "[redis][db_shard]")
+{
+    DBShard shard;
 
     DBShard::Entry expired{
         .value = DBShard::String{ "old" },
@@ -60,7 +65,7 @@ TEST_CASE("db_shard modify handles create and expire cleanup", "[db_shard]")
     CHECK(shard.get_entry("expired") == nullptr);
 }
 
-TEST_CASE("db_shard modify covers iterator-based erase and rename", "[db_shard]")
+TEST_CASE("db_shard modify应支持rename", "[redis][db_shard]")
 {
     DBShard shard;
 
@@ -76,6 +81,25 @@ TEST_CASE("db_shard modify covers iterator-based erase and rename", "[db_shard]"
         auto* value = handler.get_if(as_type<DBShard::String>);
         REQUIRE(value != nullptr);
         CHECK(*value == "payload");
+    });
+
+    CHECK(shard.get_entry("old_key") == nullptr);
+    auto* renamed = shard.get_entry("new_key");
+    REQUIRE(renamed != nullptr);
+    REQUIRE(std::holds_alternative<DBShard::String>(renamed->value));
+}
+
+TEST_CASE("db_shard modify应支持erase", "[redis][db_shard]")
+{
+    DBShard shard;
+
+    shard.modify("old_key", [](auto& handler) {
+        auto* value = handler.emplace(as_type<DBShard::String>, "payload");
+        REQUIRE(value != nullptr);
+    });
+
+    shard.modify("old_key", [](auto& handler) {
+        REQUIRE(handler.exists());
 
         CHECK(handler.erase());
         CHECK_FALSE(handler.exists());
@@ -83,10 +107,9 @@ TEST_CASE("db_shard modify covers iterator-based erase and rename", "[db_shard]"
     });
 
     CHECK(shard.get_entry("old_key") == nullptr);
-    CHECK(shard.get_entry("new_key") == nullptr);
 }
 
-TEST_CASE("db_shard modify covers expire ttl and persist", "[db_shard]")
+TEST_CASE("db_shard modify应支持expire并返回TTL", "[redis][db_shard]")
 {
     DBShard shard;
 
@@ -103,7 +126,21 @@ TEST_CASE("db_shard modify covers expire ttl and persist", "[db_shard]")
         auto ttl = handler.ttl();
         REQUIRE(ttl.has_value());
         CHECK(*ttl > 0);
+    });
+}
 
+TEST_CASE("db_shard modify应支持persist", "[redis][db_shard]")
+{
+    DBShard shard;
+
+    shard.modify("ttl_key", [](auto& handler) {
+        auto* value = handler.emplace(as_type<DBShard::Integral>, 42);
+        REQUIRE(value != nullptr);
+        CHECK(handler.expire(1000));
+    });
+
+    shard.modify("ttl_key", [](auto& handler) {
+        REQUIRE(handler.exists());
         CHECK(handler.persist());
 
         auto persistent_ttl = handler.ttl();
