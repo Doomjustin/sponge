@@ -1,5 +1,5 @@
-#ifndef SPONGE_LEVELDB_LOG_H
-#define SPONGE_LEVELDB_LOG_H
+#ifndef SPONGE_LEVELDB_WAL_H
+#define SPONGE_LEVELDB_WAL_H
 
 #include <array>
 #include <cstddef>
@@ -134,4 +134,4 @@ private:
 
 } // namespace spg::leveldb::wal
 
-#endif // SPONGE_LEVELDB_LOG_H
+#endif // SPONGE_LEVELDB_WAL_H

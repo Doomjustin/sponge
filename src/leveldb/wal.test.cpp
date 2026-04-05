@@ -1,4 +1,4 @@
-#include "log.h"
+#include "wal.h"
 
 #include <fstream>
 #include <string>
