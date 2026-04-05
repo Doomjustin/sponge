@@ -5,6 +5,8 @@ project(sponge
     LANGUAGES C CXX
 )
 
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 include(CTest)
 include(CMakeDependentOption)
 

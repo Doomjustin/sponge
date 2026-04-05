@@ -60,7 +60,7 @@ TEST_CASE("crc::verity 在匹配输入时应返回 true", "[leveldb][crc]")
 
 	const auto expected = crc::compute(type, payload);
 
-	REQUIRE(crc::verity(expected, type, payload));
+	REQUIRE(crc::verify(expected, type, payload));
 }
 
 TEST_CASE("crc::verity 在 type 或 payload 变化时应返回 false", "[leveldb][crc]")
@@ -70,8 +70,8 @@ TEST_CASE("crc::verity 在 type 或 payload 变化时应返回 false", "[leveldb
 
 	const auto expected = crc::compute(type, payload);
 
-	REQUIRE_FALSE(crc::verity(expected, static_cast<uint8_t>(type + 1), payload));
-	REQUIRE_FALSE(crc::verity(expected, type, "segment-data-corrupted"));
+	REQUIRE_FALSE(crc::verify(expected, static_cast<uint8_t>(type + 1), payload));
+	REQUIRE_FALSE(crc::verify(expected, type, "segment-data-corrupted"));
 }
 
 TEST_CASE("crc::verity 应支持空 payload", "[leveldb][crc]")
@@ -81,7 +81,7 @@ TEST_CASE("crc::verity 应支持空 payload", "[leveldb][crc]")
 
 	const auto expected = crc::compute(type, payload);
 
-	REQUIRE(crc::verity(expected, type, payload));
+	REQUIRE(crc::verify(expected, type, payload));
 }
 
 TEST_CASE("crc::compute 的默认重载应返回未掩码的原始 CRC", "[leveldb][crc]")
@@ -93,7 +93,7 @@ TEST_CASE("crc::compute 的默认重载应返回未掩码的原始 CRC", "[level
 	const auto actual = crc::compute(type, payload);
 
 	REQUIRE(actual == raw_crc);
-	REQUIRE(crc::verity(actual, type, payload));
+	REQUIRE(crc::verify(actual, type, payload));
 }
 
 TEST_CASE("crc::compute 的 add_mask 重载应返回 masked CRC", "[leveldb][crc]")
@@ -105,8 +105,8 @@ TEST_CASE("crc::compute 的 add_mask 重载应返回 masked CRC", "[leveldb][crc
 	const auto masked_crc = crc::compute(type, payload, crc::add_mask);
 
 	REQUIRE(masked_crc != raw_crc);
-	REQUIRE(crc::verity(crc::masked(masked_crc), type, payload));
-	REQUIRE_FALSE(crc::verity(crc::masked(raw_crc), type, payload));
+	REQUIRE(crc::verify(crc::masked(masked_crc), type, payload));
+	REQUIRE_FALSE(crc::verify(crc::masked(raw_crc), type, payload));
 }
 
 TEST_CASE("crc::verity 的 uint32_t 重载不应接受 masked CRC", "[leveldb][crc]")
@@ -116,5 +116,5 @@ TEST_CASE("crc::verity 的 uint32_t 重载不应接受 masked CRC", "[leveldb][c
 
 	const auto masked_crc = crc::compute(type, payload, crc::add_mask);
 
-	REQUIRE_FALSE(crc::verity(masked_crc, type, payload));
+	REQUIRE_FALSE(crc::verify(masked_crc, type, payload));
 }

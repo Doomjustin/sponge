@@ -12,6 +12,14 @@ enum class ValueType : uint8_t {
     Value = 1 
 };
 
+enum class RecordType: uint8_t {
+    Zero,
+    Full,
+    First,
+    Middle,
+    Last
+};
+
 using SequenceNumber = NamedType<std::uint64_t,
                                  "SequenceNumber",
                                  Comparable,

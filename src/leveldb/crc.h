@@ -26,9 +26,9 @@ struct crc {
 
     static auto compute(uint8_t type, std::string_view data, [[maybe_unused]] AddMaskT) -> uint32_t;
 
-    static auto verity(uint32_t expected, uint8_t type, std::string_view data) -> bool;
+    static auto verify(uint32_t expected, uint8_t type, std::string_view data) -> bool;
 
-    static auto verity(MaskedT expected, uint8_t type, std::string_view data) -> bool;
+    static auto verify(MaskedT expected, uint8_t type, std::string_view data) -> bool;
 };
 
 } // namespace spg::leveldb

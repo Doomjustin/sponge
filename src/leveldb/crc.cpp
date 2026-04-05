@@ -38,7 +38,7 @@ auto crc::compute(uint8_t type, std::string_view data, [[maybe_unused]] AddMaskT
     return mask(result);
 }
 
-auto crc::verity(uint32_t expected, uint8_t type, std::string_view data) -> bool
+auto crc::verify(uint32_t expected, uint8_t type, std::string_view data) -> bool
 {
     uint32_t actual = 0;
     actual = crc32c::Extend(actual, &type, 1);
@@ -46,9 +46,9 @@ auto crc::verity(uint32_t expected, uint8_t type, std::string_view data) -> bool
     return expected == actual;
 }
 
-auto crc::verity(MaskedT expected, uint8_t type, std::string_view data) -> bool
+auto crc::verify(MaskedT expected, uint8_t type, std::string_view data) -> bool
 {
-    return verity(unmask(expected.value), type, data);
+    return verify(unmask(expected.value), type, data);
 }
 
 } // namespace spg::leveldb
