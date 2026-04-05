@@ -28,7 +28,7 @@ public:
 
     auto async_append(std::string_view record) -> asio::awaitable<void>;
 
-    auto sync() -> asio::awaitable<void>;
+    void sync();
 
 private:
     static constexpr size_t HEADER_SIZE = 7;

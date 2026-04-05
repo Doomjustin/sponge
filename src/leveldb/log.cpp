@@ -22,14 +22,14 @@ auto Writer::async_append(std::string_view record) -> asio::awaitable<void>
     bool begin = true;
 
     do {
-        const auto leftover = BLOCK_SIZE - block_offset_;
+        const auto leftover = LOG_BLOCK_SIZE - block_offset_;
         if (leftover < HEADER_SIZE) {
             static constexpr std::string_view zeroes = "\0\0\0\0\0\0\0";
             co_await async_write(asio::const_buffer(zeroes.data(), leftover));
             block_offset_ = 0;
         }
 
-        const auto avail = BLOCK_SIZE - block_offset_ - HEADER_SIZE;
+        const auto avail = LOG_BLOCK_SIZE - block_offset_ - HEADER_SIZE;
         const auto to_write = std::min(avail, record.size());
         const bool end = (to_write == record.size());
 
@@ -46,15 +46,13 @@ auto Writer::async_append(std::string_view record) -> asio::awaitable<void>
     } while (!record.empty());
 }
 
-auto Writer::sync() -> asio::awaitable<void>
+void Writer::sync()
 {
     boost::system::error_code ec;
     file_.sync_all(ec);
 
     if (ec)
         throw IOException{ "WAL log sync failed {}.", ec.message() };
-
-    co_return;
 }
 
 auto Writer::async_write(asio::const_buffer buffer) -> asio::awaitable<void>

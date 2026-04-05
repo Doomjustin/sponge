@@ -61,7 +61,7 @@ auto run_writer_once(const fs::path& path, const std::string_view record) -> voi
 		[&]() -> asio::awaitable<void> {
 			spg::leveldb::Writer writer{ co_await asio::this_coro::executor, path };
 			co_await writer.async_append(record);
-			co_await writer.sync();
+			writer.sync();
 		},
 		[&](std::exception_ptr e) { ep = e; }
 	);
