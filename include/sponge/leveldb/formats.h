@@ -25,8 +25,6 @@ using SequenceNumber = NamedType<std::uint64_t,
                                  Comparable,
                                  Arithmetic>;
 
-inline constexpr size_t LOG_BLOCK_SIZE = 32 * 1024; // 32KB
-
 } // namespace spg::leveldb
 
 namespace spg::leveldb::literals {

@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <sponge/coding.h>
+#include <sponge/leveldb/exceptions.h>
 
 #include "crc.h"
 
@@ -14,6 +15,7 @@ namespace {
 
 namespace asio = boost::asio;
 namespace fs = std::filesystem;
+namespace wal = spg::leveldb::wal;
 
 struct ParsedRecord {
 	uint32_t checksum;
@@ -59,7 +61,7 @@ auto run_writer_once(const fs::path& path, const std::string_view record) -> voi
 	asio::co_spawn(
 		io,
 		[&]() -> asio::awaitable<void> {
-			spg::leveldb::Writer writer{ co_await asio::this_coro::executor, path };
+			wal::Writer writer{ co_await asio::this_coro::executor, path };
 			co_await writer.async_append(record);
 			writer.sync();
 		},
@@ -68,6 +70,39 @@ auto run_writer_once(const fs::path& path, const std::string_view record) -> voi
 
 	io.run();
 	REQUIRE(ep == nullptr);
+}
+
+auto run_writer_many(const fs::path& path, const std::vector<std::string>& records) -> void
+{
+	asio::io_context io;
+	std::exception_ptr ep;
+
+	asio::co_spawn(
+		io,
+		[&]() -> asio::awaitable<void> {
+			wal::Writer writer{ co_await asio::this_coro::executor, path };
+			for (const auto& record : records)
+				co_await writer.async_append(record);
+			writer.sync();
+		},
+		[&](std::exception_ptr e) { ep = e; }
+	);
+
+	io.run();
+	REQUIRE(ep == nullptr);
+}
+
+auto read_all_records(const fs::path& path, const bool paranoid_checks = false) -> std::vector<std::string>
+{
+	asio::io_context io;
+	asio::stream_file file{ io.get_executor(), path, asio::stream_file::read_only };
+	wal::Reader reader{ file, path, paranoid_checks };
+
+	std::vector<std::string> records;
+	for (auto it = reader.begin(); it != reader.end(); ++it)
+		records.emplace_back(*it);
+
+	return records;
 }
 
 auto parse_first_record(const std::string& bytes) -> ParsedRecord
@@ -117,6 +152,14 @@ auto make_large_payload(const size_t length) -> std::string
 		payload[i] = static_cast<char>('a' + (i % 26));
 
 	return payload;
+}
+
+auto overwrite_file_bytes(const fs::path& path, const std::string& bytes) -> void
+{
+	std::ofstream os(path, std::ios::binary | std::ios::trunc);
+	REQUIRE(os.is_open());
+	os.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+	os.flush();
 }
 
 } // namespace
@@ -321,4 +364,68 @@ TEST_CASE("在写入超大记录时，应该保证每个分片 checksum 都可�
 
 	for (const auto& record : records)
 		REQUIRE(spg::leveldb::crc::verify(spg::leveldb::crc::masked(record.checksum), std::to_underlying(record.type), record.payload));
+}
+
+TEST_CASE("在读取单条日志记录时，应该返回对应的记录内容", "[leveldb][log][reader]")
+{
+	TempLogFile temp;
+	constexpr auto payload = "reader-one-record";
+
+	run_writer_once(temp.path(), payload);
+	const auto records = read_all_records(temp.path());
+
+	REQUIRE(records.size() == 1);
+	REQUIRE(records.front() == payload);
+}
+
+TEST_CASE("在读取多条日志记录时，应该保持写入顺序", "[leveldb][log][reader]")
+{
+	TempLogFile temp;
+	const std::vector<std::string> expected{ "record-1", "record-2", "record-3" };
+
+	run_writer_many(temp.path(), expected);
+	const auto records = read_all_records(temp.path());
+
+	REQUIRE(records == expected);
+}
+
+TEST_CASE("在读取分片日志记录时，应该重组出完整内容", "[leveldb][log][reader]")
+{
+	TempLogFile temp;
+	const auto payload = make_large_payload(200000);
+
+	run_writer_once(temp.path(), payload);
+	const auto records = read_all_records(temp.path());
+
+	REQUIRE(records.size() == 1);
+	REQUIRE(records.front() == payload);
+}
+
+TEST_CASE("在读取 checksum 损坏日志且 paranoid_checks 关闭时，应该返回空结果", "[leveldb][log][reader]")
+{
+	TempLogFile temp;
+	constexpr auto payload = "corrupted-record";
+
+	run_writer_once(temp.path(), payload);
+	auto bytes = read_all_bytes(temp.path());
+	REQUIRE_FALSE(bytes.empty());
+	bytes[0] = static_cast<char>(bytes[0] ^ 0xFF);
+	overwrite_file_bytes(temp.path(), bytes);
+
+	const auto records = read_all_records(temp.path(), false);
+	REQUIRE(records.empty());
+}
+
+TEST_CASE("在读取 checksum 损坏日志且 paranoid_checks 开启时，应该抛出 CorruptionException", "[leveldb][log][reader]")
+{
+	TempLogFile temp;
+	constexpr auto payload = "corrupted-record";
+
+	run_writer_once(temp.path(), payload);
+	auto bytes = read_all_bytes(temp.path());
+	REQUIRE_FALSE(bytes.empty());
+	bytes[0] = static_cast<char>(bytes[0] ^ 0xFF);
+	overwrite_file_bytes(temp.path(), bytes);
+
+	REQUIRE_THROWS_AS(read_all_records(temp.path(), true), spg::leveldb::CorruptionException);
 }
