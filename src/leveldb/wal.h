@@ -55,8 +55,8 @@ public:
     Reader(const Reader&) = delete;
     auto operator=(const Reader&) -> Reader& = delete;
 
-    Reader(Reader&&) = default;
-    auto operator=(Reader&&) -> Reader& = default;
+    Reader(Reader&&) = delete;
+    auto operator=(Reader&&) -> Reader& = delete;
 
     ~Reader() = default;
 
@@ -111,7 +111,7 @@ public:
         return *this;
     }
 
-    auto operator++(int) noexcept -> Iterator
+    auto operator++(int) -> Iterator
     {
         Iterator temp = *this;
         ++(*this);

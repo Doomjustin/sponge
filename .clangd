@@ -13,6 +13,10 @@ Diagnostics:
     Add: 
       - "modernize-*"
       - "performance-*"
+    Remove:
+      - "performance-unnecessary-value-param"
+      # 我知道什么时候加，什么时候不加，编译器也知道，为什么还要提示我加？！
+      - "performance-noexcept-move-constructor"
 
 InlayHints:
   Enabled: true

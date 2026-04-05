@@ -29,7 +29,7 @@ class SkipList {
     class Node;
 
     class alignas(std::atomic<Node*>) Node {
-        public:
+    public:
         const T value;
         int height;
 
@@ -64,7 +64,7 @@ class SkipList {
             );
         }
 
-        private:
+    private:
         auto forwards() noexcept -> std::atomic<Node*>*
         {
             return reinterpret_cast<std::atomic<Node*>*>(this + 1);

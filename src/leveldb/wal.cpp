@@ -13,7 +13,9 @@
 
 namespace spg::leveldb::wal {
 
-static auto WRITE_OPTIONS = asio::file_base::append | asio::file_base::create | asio::file_base::write_only;
+static auto WRITE_OPTIONS = asio::file_base::append | 
+                            asio::file_base::create | 
+                            asio::file_base::write_only;
 
 Writer::Writer(asio::any_io_executor executor, const fs::path& path)
   : file_{ executor, path, WRITE_OPTIONS }
