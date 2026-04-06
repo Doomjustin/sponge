@@ -26,14 +26,14 @@ auto Writer::async_append(std::string_view record) -> asio::awaitable<void>
     bool begin = true;
 
     do {
-        const auto leftover = LOG_BLOCK_SIZE - block_offset_;
+        const auto leftover = CHUNK_SIZE - block_offset_;
         if (leftover < HEADER_SIZE) {
             static constexpr std::string_view zeroes = "\0\0\0\0\0\0\0";
             co_await async_write(asio::const_buffer(zeroes.data(), leftover));
             block_offset_ = 0;
         }
 
-        const auto avail = LOG_BLOCK_SIZE - block_offset_ - HEADER_SIZE;
+        const auto avail = CHUNK_SIZE - block_offset_ - HEADER_SIZE;
         const auto to_write = std::min(avail, record.size());
         const bool end = (to_write == record.size());
 
@@ -164,7 +164,7 @@ auto Reader::read_physical_record() -> std::optional<std::pair<std::string_view,
 
             buffer_cursor_ = 0;
             boost::system::error_code ec;
-            buffer_size_ = asio::read(file_, asio::buffer(buffer_), asio::transfer_exactly(LOG_BLOCK_SIZE), ec);
+            buffer_size_ = asio::read(file_, asio::buffer(buffer_), asio::transfer_exactly(CHUNK_SIZE), ec);
 
             if (ec == asio::error::eof) {
                 if (buffer_size_ == 0) {

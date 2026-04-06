@@ -18,7 +18,7 @@ namespace asio = boost::asio;
 namespace fs = std::filesystem;
 
 inline constexpr size_t HEADER_SIZE = 7;
-inline constexpr size_t LOG_BLOCK_SIZE = 32 * 1024; // 32KB
+inline constexpr size_t CHUNK_SIZE = 32 * 1024; // 32KB
 
 
 class Writer {
@@ -69,7 +69,7 @@ private:
     bool paranoid_checks_;
 
     bool eof_ = false;
-    std::array<char, LOG_BLOCK_SIZE> buffer_{};
+    std::array<char, CHUNK_SIZE> buffer_{};
     size_t buffer_cursor_ = 0;
     size_t buffer_size_ = 0;
 
